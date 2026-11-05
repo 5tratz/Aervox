@@ -14,9 +14,11 @@ import { ProfilePage } from '@/pages/profile'
 import { LogbookPage } from '@/pages/logbook'
 import { FlightDebriefPage } from '@/pages/flight-debrief'
 import { ScheduledPage } from '@/pages/scheduled'
+import { AuthPage } from '@/pages/auth'
 import { useLocale } from '@/lib/locale-context'
 import { useBackground } from '@/lib/background-context'
 import { useSimConnect } from '@/lib/simconnect-context'
+import { usePilot } from '@/lib/pilot-context'
 import { AcceptedFlightProvider } from '@/lib/accepted-flight-context'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import {
@@ -65,9 +67,11 @@ function ConnectionHeartbeat() {
 
 function Shell() {
   const { t } = useLocale()
+  const { isLoggedIn } = usePilot()
   const { bgUrl } = useBackground()
   const location = useLocation()
   const isDashboard = location.pathname === '/'
+  const isLoginPage = location.pathname === '/login'
 
   const [updateInfo, setUpdateInfo] = useState<Update | null>(null)
   const [installing, setInstalling] = useState(false)
@@ -102,7 +106,6 @@ function Shell() {
     setInstalling(true)
     try {
       await updateInfo.downloadAndInstall()
-      // Windows installer takes over and exits; macOS/Linux need a relaunch.
       await relaunch()
     } catch (err) {
       console.error('Update install failed:', err)
@@ -115,6 +118,20 @@ function Shell() {
     updateInfo?.close()
     setUpdateInfo(null)
   }, [updateInfo])
+
+  // ── Auth guards moved to AFTER all hooks ──
+  if (!isLoggedIn && !isLoginPage) {
+    return <Navigate to="/login" replace />
+  }
+
+  if (isLoginPage) {
+    return (
+      <Routes>
+        <Route path="/login" element={<AuthPage />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    )
+  }
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-background text-foreground">

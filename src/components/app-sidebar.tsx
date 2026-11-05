@@ -12,9 +12,10 @@ import {
   SlidersHorizontal,
   Calendar,
 } from 'lucide-react'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { useLocale } from '@/lib/locale-context'
+import { usePilot } from '@/lib/pilot-context'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
@@ -22,6 +23,8 @@ const STORAGE_KEY = 'sidebar:collapsed'
 
 export function AppSidebar() {
   const { t } = useLocale()
+  const { logout } = usePilot()
+  const navigate = useNavigate()
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     return localStorage.getItem(STORAGE_KEY) === '1'
   })
@@ -30,7 +33,11 @@ export function AppSidebar() {
     localStorage.setItem(STORAGE_KEY, collapsed ? '1' : '0')
   }, [collapsed])
 
-  // Nav structure: items can be links (with `to`) or category headers (without `to`)
+  const handleSignOut = async () => {
+    await logout()
+    navigate('/login')
+  }
+
   const nav = [
     { label: t('nav.dashboard'), to: '/', icon: LayoutDashboard },
     { label: t('nav.flights'), icon: Map, isHeader: true },
@@ -60,9 +67,8 @@ export function AppSidebar() {
     isHeader?: boolean
     isChild?: boolean
   }) => {
-    // If it's a header, render a non-clickable section title
     if (isHeader) {
-      if (collapsed) return null // Hide headers when collapsed
+      if (collapsed) return null
       return (
         <div className="px-3 pt-4 pb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 select-none">
           {label}
@@ -75,7 +81,7 @@ export function AppSidebar() {
         className={cn(
           'group relative flex items-center rounded-lg h-9 transition-all duration-150',
           collapsed ? 'w-9 justify-center mx-auto' : 'w-full px-3 gap-3',
-          isChild && !collapsed && 'pl-9', // Indent child items
+          isChild && !collapsed && 'pl-9',
           isActive
             ? 'bg-accent text-accent-foreground'
             : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground',
@@ -203,7 +209,7 @@ export function AppSidebar() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
-                  onClick={() => {}}
+                  onClick={handleSignOut}
                   className="group flex h-9 w-9 mx-auto items-center justify-center rounded-lg text-muted-foreground hover:bg-accent/50 hover:text-foreground transition-colors"
                 >
                   <LogOut className="h-[18px] w-[18px]" />
@@ -216,7 +222,7 @@ export function AppSidebar() {
           </TooltipProvider>
         ) : (
           <button
-            onClick={() => {}}
+            onClick={handleSignOut}
             className="flex w-full h-9 items-center gap-3 rounded-lg px-3 text-[13px] font-medium text-muted-foreground hover:bg-accent/50 hover:text-foreground transition-colors"
           >
             <LogOut className="h-[18px] w-[18px]" />

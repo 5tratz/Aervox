@@ -5,7 +5,7 @@ import { writeFile, BaseDirectory, mkdir, exists } from '@tauri-apps/plugin-fs'
 import {
   User, Upload, Trash2, Save, Plane, MapPin,
   Award, AlertCircle, CheckCircle2, Clock, ExternalLink,
-  Calendar, CalendarDays
+  Calendar, CalendarDays, ClipboardList
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -167,20 +167,31 @@ export function ProfilePage() {
   }
 
   return (
-    <div className="flex flex-col space-y-6 pb-6 w-full max-w-7xl mx-auto">
+    <div className="flex flex-col h-full w-full space-y-6 pb-10">
+      
+      {/* Page Title Header */}
+      <div className="shrink-0 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+            <User className="h-6 w-6 text-primary" />
+            {t('profile.pilotInfo')}
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">Manage your pilot identity and view your flight stats.</p>
+        </div>
+      </div>
 
-      {/* Header Card */}
+      {/* Header Card - Responsive */}
       <Card className="overflow-hidden shrink-0 w-full border-border/60 shadow-sm relative">
         {/* Subtle background pattern for the header */}
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-transparent pointer-events-none" />
         
         <CardContent className="p-6 relative">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             
             {/* Left: Avatar & Info */}
-            <div className="flex items-center gap-6">
+            <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-center sm:text-left">
               <div className="relative shrink-0">
-                <div className="h-28 w-28 rounded-2xl border-4 border-background bg-muted shadow-md overflow-hidden flex items-center justify-center">
+                <div className="h-24 w-24 sm:h-28 sm:w-28 rounded-2xl border-4 border-background bg-muted shadow-md overflow-hidden flex items-center justify-center">
                   {avatarUrl ? (
                     <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
                   ) : (
@@ -193,31 +204,31 @@ export function ProfilePage() {
                   <Button
                     size="icon"
                     variant="default"
-                    className="h-6 w-6 rounded-full shadow-md"
+                    className="h-7 w-7 rounded-full shadow-md"
                     onClick={handleAvatarPick}
                     disabled={avatarBusy}
                   >
-                    <Upload className="h-2.5 w-2.5" />
+                    <Upload className="h-3 w-3" />
                   </Button>
                   {pilot.avatarFilename && (
                     <Button
                       size="icon"
                       variant="destructive"
-                      className="h-6 w-6 rounded-full shadow-md"
+                      className="h-7 w-7 rounded-full shadow-md"
                       onClick={handleAvatarClear}
                       disabled={avatarBusy}
                     >
-                      <Trash2 className="h-2.5 w-2.5" />
+                      <Trash2 className="h-3 w-3" />
                     </Button>
                   )}
                 </div>
               </div>
 
               <div className="flex-1 min-w-0">
-                <h1 className="text-3xl font-bold tracking-tight truncate">
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight truncate">
                   {displayName || t('profile.unnamedPilot')}
                 </h1>
-                <div className="flex items-center gap-2 mt-2 flex-wrap">
+                <div className="flex items-center gap-2 mt-2 flex-wrap justify-center sm:justify-start">
                   {callsign && (
                     <span className="inline-flex items-center gap-1.5 text-sm font-mono font-semibold bg-primary/10 text-primary px-2.5 py-1 rounded-md border border-primary/20">
                       <Plane className="h-3.5 w-3.5" /> {callsign}
@@ -233,7 +244,7 @@ export function ProfilePage() {
             </div>
 
             {/* Right: Dates with Icons */}
-            <div className="flex flex-col sm:flex-row md:flex-col gap-3 md:gap-2 shrink-0 md:border-l md:pl-6 border-border/50">
+            <div className="flex flex-col sm:flex-row md:flex-col gap-3 md:gap-2 shrink-0 md:border-l md:pl-6 border-border/50 items-center sm:items-start md:items-start">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <CalendarDays className="h-4 w-4 text-primary/70" />
                 <span>{t('profile.joined')} <strong className="text-foreground font-medium">{formatDate(pilot.createdAt)}</strong></span>
@@ -248,8 +259,8 @@ export function ProfilePage() {
         </CardContent>
       </Card>
 
-      {/* Main Grid */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 w-full items-stretch">
+      {/* Main Grid - Expanded to fill screen */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 w-full items-stretch flex-1">
         
         {/* Left Column */}
         <div className="xl:col-span-2 flex flex-col gap-6">
@@ -279,10 +290,10 @@ export function ProfilePage() {
                   <Label className="text-muted-foreground">{t('profile.email')}</Label>
                   <Input
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
                     placeholder={t('profile.emailPlaceholder')}
                     type="email"
-                    className="bg-muted/30"
+                    disabled 
+                    className="bg-muted/30 opacity-70 cursor-not-allowed" 
                   />
                 </div>
                 <div className="space-y-2">
@@ -321,7 +332,7 @@ export function ProfilePage() {
             </CardHeader>
             <CardContent className="flex flex-col gap-6 pb-6">
               
-              <div className="max-w-[250px] w-full space-y-2">
+              <div className="max-w-[300px] w-full space-y-2">
                 <Label className="text-muted-foreground">{t('profile.simbriefId')}</Label>
                 <Input
                   value={simbriefId}
@@ -336,37 +347,44 @@ export function ProfilePage() {
 
               <Separator className="bg-border/60" />
 
-              {/* REDESIGNED SIMBRIEF BOX (Full Width) */}
+              {/* SimBrief OFP Box */}
               <div className="w-full">
                 {ofp ? (
-                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-5 rounded-xl bg-muted/20 border border-border/50">
-                    <div className="flex items-center gap-6 w-full sm:w-auto">
-                      {/* Route */}
-                      <div className="flex items-center gap-3">
-                        <span className="text-4xl font-bold font-mono tracking-tight text-foreground">{ofp.origin?.icao_code || '???'}</span>
-                        <span className="text-muted-foreground text-2xl font-light">→</span>
-                        <span className="text-4xl font-bold font-mono tracking-tight text-foreground">{ofp.destination?.icao_code || '???'}</span>
-                      </div>
-                      
-                      {/* Divider */}
-                      <div className="hidden sm:block h-10 w-px bg-border/60" />
+                  <div className="space-y-2">
+                    {/* NEW: Title above the loaded flight plan */}
+                    <Label className="text-muted-foreground ml-1">
+                      Currently Imported Flight Plan
+                    </Label>
 
-                      {/* Aircraft */}
-                      <div className="flex flex-col text-sm">
-                        <span className="font-semibold text-foreground">{ofp.aircraft?.name || t('common.unknown')}</span>
-                        {ofp.aircraft?.reg && (
-                          <span className="font-mono text-xs text-muted-foreground mt-0.5">{ofp.aircraft.reg}</span>
-                        )}
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-xl bg-muted/20 border border-border/50">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-6 w-full">
+                        {/* Route */}
+                        <div className="flex items-center gap-3">
+                          <span className="text-3xl sm:text-4xl font-bold font-mono tracking-tight text-foreground">{ofp.origin?.icao_code || '???'}</span>
+                          <span className="text-muted-foreground text-2xl font-light">→</span>
+                          <span className="text-3xl sm:text-4xl font-bold font-mono tracking-tight text-foreground">{ofp.destination?.icao_code || '???'}</span>
+                        </div>
+                        
+                        {/* Divider (Desktop only) */}
+                        <div className="hidden sm:block h-10 w-px bg-border/60" />
+
+                        {/* Aircraft */}
+                        <div className="flex flex-col text-sm">
+                          <span className="font-semibold text-foreground">{ofp.aircraft?.name || t('common.unknown')}</span>
+                          {ofp.aircraft?.reg && (
+                            <span className="font-mono text-xs text-muted-foreground mt-0.5">{ofp.aircraft.reg}</span>
+                          )}
+                        </div>
                       </div>
+
+                      <Button
+                        variant="secondary"
+                        onClick={() => navigate('/flight-plan')}
+                        className="w-full sm:w-auto shrink-0 shadow-sm mt-2 sm:mt-0"
+                      >
+                        <ExternalLink className="h-4 w-4 mr-2" /> {t('profile.viewFullPlan')}
+                      </Button>
                     </div>
-
-                    <Button
-                      variant="secondary"
-                      onClick={() => navigate('/flight-plan')}
-                      className="w-full sm:w-auto shrink-0 shadow-sm"
-                    >
-                      <ExternalLink className="h-4 w-4 mr-2" /> {t('profile.viewFullPlan')}
-                    </Button>
                   </div>
                 ) : (
                   <div className="flex items-start gap-3 p-5 rounded-xl bg-muted/20 border border-border/50 text-sm text-muted-foreground">
@@ -389,8 +407,8 @@ export function ProfilePage() {
           </Card>
         </div>
 
-        {/* Right Column */}
-        <Card className="xl:col-span-1 flex flex-col border-border/60 shadow-sm">
+        {/* Right Column - Flight Stats */}
+        <Card className="xl:col-span-1 flex flex-col border-border/60 shadow-sm h-full">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <Award className="h-5 w-5 text-primary" /> {t('profile.flightStats')}
@@ -440,7 +458,7 @@ export function ProfilePage() {
       </div>
 
       {/* Bottom Action Bar */}
-      <div className="flex items-center justify-end gap-4 pt-2 pb-8">
+      <div className="flex items-center justify-end gap-4 pt-2 pb-4 shrink-0">
         {isDirty && !saving && (
           <span className="text-sm text-amber-500 font-medium animate-pulse bg-amber-500/10 px-3 py-1.5 rounded-md">
             {t('profile.unsavedChanges')}

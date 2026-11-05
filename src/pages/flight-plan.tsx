@@ -4,12 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Plane, RefreshCw, Download, ExternalLink, AlertTriangle, MapPin, Trash2 } from 'lucide-react'
-import { MapContainer, TileLayer, Marker, Polyline, Tooltip, useMap } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Polyline, Tooltip, useMap, CircleMarker } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useTheme } from 'next-themes'
 import { getAirport } from '@/lib/airports'
-import { formatOFPText, type SimbriefOFP } from '@/lib/simbrief'
+import { formatOFPText, extractRouteWaypoints, type SimbriefOFP } from '@/lib/simbrief'
 import { useSimbrief } from '@/lib/simbrief-context'
 import { usePilot } from '@/lib/pilot-context'
 import { useAcceptedFlight } from '@/lib/accepted-flight-context'
@@ -51,22 +51,6 @@ function coordsOf(icao?: string): [number, number] | null {
   if (!icao) return null
   const apt = getAirport(icao)
   return apt ? [apt.lat, apt.lon] : null
-}
-
-function parseRoutePoints(ofp: SimbriefOFP): { icao: string; coords: [number, number] }[] {
-  const points: { icao: string; coords: [number, number] }[] = []
-
-  const originCoords = coordsOf(ofp.origin?.icao_code)
-  if (originCoords && ofp.origin?.icao_code) {
-    points.push({ icao: ofp.origin.icao_code, coords: originCoords })
-  }
-
-  const destCoords = coordsOf(ofp.destination?.icao_code)
-  if (destCoords && ofp.destination?.icao_code) {
-    points.push({ icao: ofp.destination.icao_code, coords: destCoords })
-  }
-
-  return points
 }
 
 function MapBounds({ routePath, alternateCoords }: { routePath: [number, number][]; alternateCoords: [number, number] | null }) {
@@ -141,14 +125,26 @@ export function FlightPlanPage() {
 
   const ofpText = useMemo(() => (ofp ? formatOFPText(ofp) : ''), [ofp])
 
-  const routePoints = useMemo(() => {
+  const waypoints = useMemo(() => {
     if (!ofp) return []
-    return parseRoutePoints(ofp)
+    return extractRouteWaypoints(ofp)
   }, [ofp])
 
   const routePath = useMemo<[number, number][]>(() => {
-    return routePoints.map((p) => p.coords)
-  }, [routePoints])
+    const path: [number, number][] = []
+    
+    const originCoords = coordsOf(ofp?.origin?.icao_code)
+    if (originCoords) path.push(originCoords)
+
+    waypoints.forEach(wp => {
+      path.push([wp.lat, wp.lon])
+    })
+
+    const destCoords = coordsOf(ofp?.destination?.icao_code)
+    if (destCoords) path.push(destCoords)
+
+    return path
+  }, [ofp, waypoints])
 
   const handleOpenExternal = () => {
     openSimbriefDispatch()
@@ -210,16 +206,6 @@ export function FlightPlanPage() {
         <div>
           <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
             <Plane className="h-6 w-6 text-primary" /> {t('plan.title')}
-            {pilot.callsign && (
-              <span className="inline-flex items-center gap-1 text-xs font-mono font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded border border-primary/20 ml-2">
-                {pilot.callsign}
-              </span>
-            )}
-            {pilot.flightNumber && (
-              <span className="text-xs font-mono bg-muted px-2 py-0.5 rounded ml-1">
-                {pilot.flightNumber}
-              </span>
-            )}
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
             {t('plan.desc')}
@@ -425,9 +411,22 @@ export function FlightPlanPage() {
               {routePath.length > 1 && (
                 <Polyline
                   positions={routePath}
-                  pathOptions={{ color: '#3b82f6', weight: 4, opacity: 0.8, lineCap: 'round' }}
+                  pathOptions={{ color: '#3b82f6', weight: 3, opacity: 0.8, lineCap: 'round' }}
                 />
               )}
+
+              {waypoints.map((wp, index) => (
+                <CircleMarker
+                  key={`${wp.ident}-${index}`}
+                  center={[wp.lat, wp.lon]}
+                  radius={3}
+                  pathOptions={{ fillColor: '#94a3b8', fillOpacity: 1, color: '#fff', weight: 1 }}
+                >
+                  <Tooltip direction="top" offset={[0, -5]} opacity={1} className="bg-background text-foreground border shadow-md font-mono text-[10px] font-bold px-1.5 py-0.5 rounded-md">
+                    {wp.ident}
+                  </Tooltip>
+                </CircleMarker>
+              ))}
 
               {originCoords && (
                 <Marker position={originCoords} icon={airportDot('origin')}>

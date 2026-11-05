@@ -1,5 +1,11 @@
 // ── Types ──────────────────────────────────────────────────────────────────
 
+export interface SimbriefWaypoint {
+  ident: string;
+  lat: number;
+  lon: number;
+}
+
 export interface SimbriefOFP {
   origin?: { icao_code?: string; iata_code?: string }
   destination?: { icao_code?: string; iata_code?: string }
@@ -40,6 +46,14 @@ export interface SimbriefOFP {
   position?: {
     pos_lat?: string
     pos_long?: string
+  }
+  navlog?: {
+    fix: Array<{
+      ident: string
+      pos_lat: string
+      pos_long: string
+      [key: string]: any
+    }>
   }
   // Allow any other fields the SimBrief API returns
   [key: string]: any
@@ -99,6 +113,20 @@ export async function fetchSimbriefOFP(pilotId: string): Promise<SimbriefOFP> {
     }
     throw new SimbriefError(String(err))
   }
+}
+
+// ── Waypoints Extraction ───────────────────────────────────────────────────
+
+export function extractRouteWaypoints(ofp: SimbriefOFP): SimbriefWaypoint[] {
+  if (!ofp?.navlog?.fix) return []
+
+  return ofp.navlog.fix
+    .map((fix: any) => ({
+      ident: fix.ident,
+      lat: parseFloat(fix.pos_lat),
+      lon: parseFloat(fix.pos_long),
+    }))
+    .filter((w: any) => !isNaN(w.lat) && !isNaN(w.lon))
 }
 
 // ── Formatting ─────────────────────────────────────────────────────────────
