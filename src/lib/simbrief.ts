@@ -1,0 +1,172 @@
+// ── Types ──────────────────────────────────────────────────────────────────
+
+export interface SimbriefOFP {
+  origin?: { icao_code?: string; iata_code?: string }
+  destination?: { icao_code?: string; iata_code?: string }
+  alternate?: { icao_code?: string }
+  aircraft?: {
+    name?: string
+    reg?: string
+    icaocode?: string
+  }
+  general?: {
+    route?: string
+    initial_altitude?: string
+    cruise_tas?: string
+  }
+  times?: {
+    est_time_enroute?: string
+    sched_out?: string
+    sched_off?: string
+    sched_on?: string
+    sched_in?: string
+    actual_off?: string
+    actual_on?: string
+    est_out?: string
+    est_off?: string
+    est_on?: string
+    est_in?: string
+  }
+  fuel?: {
+    plan_ramp?: string
+    plan_takeoff?: string
+    plan_landing?: string
+    plan_reserve?: string
+  }
+  weights?: {
+    payload?: string
+    cargo?: string
+  }
+  position?: {
+    pos_lat?: string
+    pos_long?: string
+  }
+  // Allow any other fields the SimBrief API returns
+  [key: string]: any
+}
+
+// Alias for backwards compatibility
+export type SimBriefOFP = SimbriefOFP
+
+export class SimbriefError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'SimbriefError'
+  }
+}
+
+// ── Fetching ───────────────────────────────────────────────────────────────
+
+export async function fetchSimbriefOFP(pilotId: string): Promise<SimbriefOFP> {
+  if (!pilotId.trim()) {
+    throw new SimbriefError('No SimBrief Pilot ID provided.')
+  }
+
+  try {
+    const res = await fetch(
+      `https://www.simbrief.com/api/xml.fetcher.php?userid=${pilotId.trim()}&json=1`
+    )
+
+    if (res.status === 400) {
+      throw new SimbriefError(
+        'Invalid Pilot ID. Please check your SimBrief Pilot ID at dispatch.simbrief.com.'
+      )
+    }
+
+    if (!res.ok) {
+      throw new SimbriefError(`SimBrief API error: ${res.status} ${res.statusText}`)
+    }
+
+    const data = await res.json()
+
+    if (data?.fetch?.status === 'Error') {
+      throw new SimbriefError(data.fetch.error ?? 'Unknown SimBrief error.')
+    }
+
+    if (!data?.origin || !data?.destination) {
+      throw new SimbriefError(
+        'No flight plan found. Make sure you have generated a flight on dispatch.simbrief.com.'
+      )
+    }
+
+    return data as SimbriefOFP
+  } catch (err) {
+    if (err instanceof SimbriefError) throw err
+    if (err instanceof TypeError) {
+      throw new SimbriefError(
+        'Network error. Check your internet connection or visit dispatch.simbrief.com.'
+      )
+    }
+    throw new SimbriefError(String(err))
+  }
+}
+
+// ── Formatting ─────────────────────────────────────────────────────────────
+
+export function formatOFPText(ofp: SimbriefOFP): string {
+  const lines: string[] = []
+
+  lines.push('═══════════════════════════════════════════════════════════')
+  lines.push('                    OPERATIONAL FLIGHT PLAN                ')
+  lines.push('═══════════════════════════════════════════════════════════')
+  lines.push('')
+
+  if (ofp.origin?.icao_code && ofp.destination?.icao_code) {
+    lines.push(`ROUTE:      ${ofp.origin.icao_code} → ${ofp.destination.icao_code}`)
+  }
+  if (ofp.alternate?.icao_code) {
+    lines.push(`ALTERNATE:  ${ofp.alternate.icao_code}`)
+  }
+  if (ofp.aircraft?.name) {
+    lines.push(`AIRCRAFT:   ${ofp.aircraft.name}`)
+  }
+  lines.push('')
+
+  lines.push('───────────────────────────────────────────────────────────')
+  lines.push(' FLIGHT DETAILS')
+  lines.push('───────────────────────────────────────────────────────────')
+  if (ofp.general?.route) {
+    lines.push(`ROUTE:      ${ofp.general.route}`)
+  }
+  if (ofp.general?.initial_altitude) {
+    lines.push(`ALTITUDE:   ${ofp.general.initial_altitude} ft`)
+  }
+  if (ofp.general?.cruise_tas) {
+    lines.push(`CRUISE TAS: ${ofp.general.cruise_tas} kts`)
+  }
+  if (ofp.times?.est_time_enroute) {
+    const secs = parseInt(ofp.times.est_time_enroute, 10)
+    const h = Math.floor(secs / 3600)
+    const m = Math.floor((secs % 3600) / 60)
+    lines.push(`ENROUTE:    ${h}h ${m}m`)
+  }
+  lines.push('')
+
+  lines.push('───────────────────────────────────────────────────────────')
+  lines.push(' TIMES')
+  lines.push('───────────────────────────────────────────────────────────')
+  if (ofp.times?.sched_out) {
+    lines.push(`SCHED OUT:  ${ofp.times.sched_out}`)
+  }
+  if (ofp.times?.sched_in) {
+    lines.push(`SCHED IN:   ${ofp.times.sched_in}`)
+  }
+  lines.push('')
+
+  lines.push('───────────────────────────────────────────────────────────')
+  lines.push(' WEIGHTS & FUEL')
+  lines.push('───────────────────────────────────────────────────────────')
+  if (ofp.fuel?.plan_ramp) {
+    lines.push(`RAMP FUEL:  ${ofp.fuel.plan_ramp} kg`)
+  }
+  if (ofp.weights?.payload) {
+    lines.push(`PAYLOAD:    ${ofp.weights.payload} kg`)
+  }
+  lines.push('')
+
+  lines.push('═══════════════════════════════════════════════════════════')
+  lines.push('        Generated by SimBrief · dispatch.simbrief.com      ')
+  lines.push('═══════════════════════════════════════════════════════════')
+
+  return lines.join('\n')
+}

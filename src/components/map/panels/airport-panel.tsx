@@ -1,0 +1,526 @@
+import { useState, useEffect, useMemo, useRef } from 'react'
+import { CloudRain, ArrowDown, Wind, ChevronDown, ChevronUp, MapPin, PlaneTakeoff, PlaneLanding, Plane } from 'lucide-react'
+import type { Airport } from '@/lib/airports'
+import { calculateHumidity, type MetarData } from '@/lib/weather'
+import { getFlagSvg } from '../map-constants'
+import type { VatsimPilot } from '../use-vatsim-traffic'
+import type { SimPosition } from '@/lib/simconnect-context'
+import type { SimbriefOFP } from '@/lib/simbrief'
+import { LiveFlightRow } from './airport-panel-row'
+import { distanceNm, cleanAircraftName, formatTime, type RowPilot } from './airport-utils'
+import tzlookup from 'tz-lookup'
+
+interface Props {
+  airport: Airport
+  metar: MetarData | null
+  metarLoading: boolean
+  showMetarDetails: boolean
+  showStats: boolean
+  onToggleMetar: () => void
+  onToggleStats: () => void
+  pilots: VatsimPilot[]
+  vatsimOn: boolean
+  selfPilot?: SimPosition | null
+  selfAircraft?: string | null
+  selfCallsign?: string
+  selfFlightNumber?: string
+  ofp?: SimbriefOFP | null
+  onShowOnMap?: (pilot: RowPilot) => void
+}
+
+type Tab = 'general' | 'departures' | 'arrivals' | 'ground'
+
+const PERSIST_MS = 3 * 60 * 1000
+const ARRIVAL_RADIUS_NM = 15
+const DEPARTURE_RADIUS_NM = 15
+
+function getAirportLocalTime(lat: number, lon: number) {
+  let tz = 'UTC'
+  try {
+    tz = tzlookup(lat, lon)
+  } catch { /* fallback */ }
+
+  const now = new Date()
+  try {
+    const timeStr = new Intl.DateTimeFormat('en-GB', {
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: tz,
+      hour12: false,
+    }).format(now)
+
+    const dateStr = new Intl.DateTimeFormat('en-GB', {
+      month: 'short',
+      day: 'numeric',
+      timeZone: tz,
+    }).format(now)
+
+    const abbr = new Intl.DateTimeFormat('en-GB', {
+      timeZone: tz,
+      timeZoneName: 'short',
+    }).formatToParts(now).find(p => p.type === 'timeZoneName')?.value ?? 'Local'
+
+    return { timeStr, dateStr, abbr, tz }
+  } catch {
+    return { timeStr: now.toISOString().slice(11, 16), dateStr: '', abbr: 'UTC', tz: 'UTC' }
+  }
+}
+
+function vatsimToRow(p: VatsimPilot): RowPilot {
+  return {
+    key: `vatsim-${p.cid}`,
+    callsign: p.callsign,
+    cid: p.cid,
+    aircraft: p.aircraft,
+    altitude: p.altitude,
+    groundspeed: p.groundspeed,
+    departure: p.departure,
+    arrival: p.arrival,
+    lat: p.lat,
+    lon: p.lon,
+    isSelf: false,
+  }
+}
+
+export function AirportPanel({
+  airport, metar, metarLoading,
+  showMetarDetails, showStats, onToggleMetar, onToggleStats,
+  pilots, vatsimOn, selfPilot, selfAircraft, selfCallsign = 'YOU', selfFlightNumber, ofp,
+  onShowOnMap,
+}: Props) {
+  const [activeTab, setActiveTab] = useState<Tab>('general')
+
+  const [trend, setTrend] = useState<'climb' | 'descend' | 'level'>('level')
+  const samplesRef = useRef<{ alt: number; t: number }[]>([])
+
+  const [departureTime, setDepartureTime] = useState<number | null>(null)
+  const [arrivalTime, setArrivalTime] = useState<number | null>(null)
+
+  const localTime = useMemo(() => getAirportLocalTime(airport.lat, airport.lon), [airport.lat, airport.lon])
+
+  useEffect(() => {
+    if (!selfPilot) {
+      samplesRef.current = []
+      setTrend('level')
+      return
+    }
+    const now = Date.now()
+    samplesRef.current.push({ alt: selfPilot.altitude, t: now })
+    samplesRef.current = samplesRef.current.filter(s => now - s.t < 3000)
+
+    if (samplesRef.current.length < 2) return
+
+    const first = samplesRef.current[0]
+    const last = samplesRef.current[samplesRef.current.length - 1]
+    const timeSpanSec = (last.t - first.t) / 1000
+    if (timeSpanSec < 1) return
+
+    const deltaAlt = last.alt - first.alt
+    const rateFpm = (deltaAlt / timeSpanSec) * 60
+
+    let next: 'climb' | 'descend' | 'level' = 'level'
+    if (rateFpm > 300) next = 'climb'
+    else if (rateFpm < -300) next = 'descend'
+
+    if (next !== trend) setTrend(next)
+  }, [selfPilot?.altitude, selfPilot?.latitude, selfPilot?.longitude, trend])
+
+  const vatsimArrivals = useMemo<RowPilot[]>(() => {
+    if (!vatsimOn) return []
+    const icao = airport.icao.toUpperCase()
+    const iata = airport.iata.toUpperCase()
+    return pilots.filter(p => {
+      const dest = p.arrival.toUpperCase()
+      return dest === icao || dest === iata
+    }).map(vatsimToRow)
+  }, [pilots, airport, vatsimOn])
+
+  const vatsimDepartures = useMemo<RowPilot[]>(() => {
+    if (!vatsimOn) return []
+    const icao = airport.icao.toUpperCase()
+    const iata = airport.iata.toUpperCase()
+    return pilots.filter(p => {
+      const dep = p.departure.toUpperCase()
+      return dep === icao || dep === iata
+    }).map(vatsimToRow)
+  }, [pilots, airport, vatsimOn])
+
+  const vatsimGround = useMemo<RowPilot[]>(() => {
+    if (!vatsimOn) return []
+    return pilots.filter(p => {
+      const isLow = p.altitude < 100
+      const d = distanceNm(p.lat, p.lon, airport.lat, airport.lon)
+      return isLow && d < 10
+    }).map(vatsimToRow)
+  }, [pilots, airport, vatsimOn])
+
+  const ofpRow = useMemo<RowPilot | null>(() => {
+    if (!ofp || !selfPilot) return null
+    const depIcao = ofp.origin?.icao_code
+    const arrIcao = ofp.destination?.icao_code
+    const isDep = depIcao === airport.icao
+    const isArr = arrIcao === airport.icao
+    if (!isDep && !isArr) return null
+
+    return {
+      key: 'simbrief',
+      callsign: selfCallsign,
+      flightNumber: selfFlightNumber,
+      aircraft: cleanAircraftName(ofp.aircraft?.name || selfPilot.title, selfAircraft),
+      altitude: selfPilot.altitude,
+      groundspeed: selfPilot.ground_speed,
+      departure: depIcao ?? '',
+      arrival: arrIcao ?? '',
+      lat: selfPilot.latitude,
+      lon: selfPilot.longitude,
+      isSelf: true,
+      scheduledTime: formatTime(isDep ? ofp.times?.sched_out : ofp.times?.sched_in),
+    } as any
+  }, [ofp, airport, selfPilot, selfCallsign, selfFlightNumber, selfAircraft])
+
+  const selfRow = useMemo<RowPilot | null>(() => {
+    if (!selfPilot) return null
+    return {
+      key: 'self',
+      callsign: selfCallsign,
+      flightNumber: selfFlightNumber,
+      aircraft: cleanAircraftName(selfPilot.title, selfAircraft),
+      altitude: selfPilot.altitude,
+      groundspeed: selfPilot.ground_speed,
+      departure: ofp?.origin?.icao_code ?? '',
+      arrival: ofp?.destination?.icao_code ?? '',
+      lat: selfPilot.latitude,
+      lon: selfPilot.longitude,
+      isSelf: true,
+    }
+  }, [selfPilot, selfCallsign, selfFlightNumber, selfAircraft, ofp])
+
+  const { arrivals, departures, ground } = useMemo(() => {
+    const now = Date.now()
+    let currentDepTime = departureTime
+    let currentArrTime = arrivalTime
+
+    const arrList = [...vatsimArrivals]
+    const depList = [...vatsimDepartures]
+    const groundList = [...vatsimGround]
+
+    if (ofpRow && ofp) {
+      const depIcao = ofp.origin?.icao_code
+      const arrIcao = ofp.destination?.icao_code
+
+      if (depIcao === airport.icao) {
+        let status = 'Scheduled'
+        if (selfPilot && !selfPilot.on_ground && trend === 'climb') {
+           status = 'Departed'
+        }
+        depList.unshift({ ...ofpRow, departureStatus: status } as any)
+      }
+
+      if (arrIcao === airport.icao && !selfPilot?.on_ground && trend === 'climb') {
+        // We are climbing away from origin, do not show in destination arrivals yet
+      } else if (arrIcao === airport.icao) {
+        let status = 'Scheduled'
+        if (selfPilot) {
+          const d = distanceNm(selfPilot.latitude, selfPilot.longitude, airport.lat, airport.lon)
+          if (selfPilot.on_ground && d < 5) status = 'Landed'
+          else if (!selfPilot.on_ground && d < ARRIVAL_RADIUS_NM) status = 'Inbound'
+        }
+        arrList.unshift({ ...ofpRow, arrivalStatus: status } as any)
+      }
+    }
+
+    if (selfRow && selfPilot) {
+      const d = distanceNm(selfPilot.latitude, selfPilot.longitude, airport.lat, airport.lon)
+
+      if (selfPilot.on_ground && d < 5) {
+        groundList.unshift(selfRow)
+      }
+
+      const alreadyInDep = depList.some(r => r.key === 'simbrief' || r.key === 'self')
+      const alreadyInArr = arrList.some(r => r.key === 'simbrief' || r.key === 'self')
+
+      const isDeparting = !selfPilot.on_ground && d < DEPARTURE_RADIUS_NM && selfPilot.altitude < 15000 && trend === 'climb'
+      const recentlyDeparted = currentDepTime !== null && now - currentDepTime < PERSIST_MS
+
+      if (isDeparting || recentlyDeparted) {
+        if (isDeparting && currentDepTime === null) currentDepTime = now
+        if (!alreadyInDep) {
+          depList.unshift({ ...selfRow, departureStatus: 'Departed' } as any)
+        }
+      } else {
+        currentDepTime = null
+      }
+
+      const isArriving = !selfPilot.on_ground && d < ARRIVAL_RADIUS_NM && trend === 'descend'
+      const isLanded = selfPilot.on_ground && d < 5
+      const recentlyArrived = currentArrTime !== null && now - currentArrTime < PERSIST_MS
+
+      if (isArriving || isLanded || recentlyArrived) {
+        if ((isArriving || isLanded) && currentArrTime === null) currentArrTime = now
+        if (!alreadyInArr) {
+          arrList.unshift({ ...selfRow, arrivalStatus: isLanded ? 'Landed' : 'Inbound' } as any)
+        }
+      } else {
+        currentArrTime = null
+      }
+    }
+
+    return { arrivals: arrList, departures: depList, ground: groundList }
+  }, [vatsimArrivals, vatsimDepartures, vatsimGround, selfRow, ofpRow, ofp, selfPilot, trend, airport, departureTime, arrivalTime])
+
+  useEffect(() => {
+    if (!selfPilot) {
+      if (departureTime !== null) setDepartureTime(null)
+      if (arrivalTime !== null) setArrivalTime(null)
+      return
+    }
+    const now = Date.now()
+    const d = distanceNm(selfPilot.latitude, selfPilot.longitude, airport.lat, airport.lon)
+
+    const isDeparting = !selfPilot.on_ground && d < DEPARTURE_RADIUS_NM && selfPilot.altitude < 15000 && trend === 'climb'
+    const isArriving = !selfPilot.on_ground && d < ARRIVAL_RADIUS_NM && trend === 'descend'
+    const isLanded = selfPilot.on_ground && d < 5
+
+    if (isDeparting && departureTime === null) setDepartureTime(now)
+    if ((isArriving || isLanded) && arrivalTime === null) setArrivalTime(now)
+
+    if (departureTime !== null && now - departureTime > PERSIST_MS && !isDeparting) setDepartureTime(null)
+    if (arrivalTime !== null && now - arrivalTime > PERSIST_MS && !isArriving && !isLanded) setArrivalTime(null)
+  }, [selfPilot, trend, airport, departureTime, arrivalTime])
+
+  return (
+    <div className="flex flex-col h-full bg-[#f8f9fa] dark:bg-zinc-950 text-foreground relative">
+
+      <div className="bg-[#2d2d2d] text-[#fbbf24] p-4 relative shrink-0">
+        <div className="flex justify-between items-start mb-1">
+          <h2 className="text-xl font-semibold tracking-tight leading-tight line-clamp-2">
+            {airport.name}
+          </h2>
+        </div>
+        <div className="flex items-center gap-2 text-sm text-white">
+          <div dangerouslySetInnerHTML={{ __html: getFlagSvg(airport.countryCode || 'un') }} />
+          <span className="font-semibold tracking-widest uppercase">
+            {airport.iata} / {airport.icao}
+          </span>
+        </div>
+        <div className="flex items-center gap-2 text-xs text-gray-300 mt-2 font-medium">
+          <span className="cursor-help" title={`Local airport time (${localTime.tz})`}>
+            {localTime.timeStr} LT
+          </span>
+          <span>|</span>
+          <span>{localTime.dateStr}</span>
+          <span>|</span>
+          <span>Elev. {airport.alt} ft</span>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto pb-16">
+        {activeTab === 'general' && (
+          <div className="p-3 space-y-3">
+            <div className="grid grid-cols-3 gap-2">
+              <div className="bg-white dark:bg-zinc-900 rounded border border-border p-2 flex flex-col items-center justify-center">
+                <span className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">Conditions</span>
+                {metarLoading ? (
+                  <div className="h-5 w-5 animate-pulse bg-muted rounded-full my-1" />
+                ) : (
+                  <CloudRain className="h-5 w-5 text-muted-foreground mb-1" />
+                )}
+                <span className="font-semibold text-xs">{metar?.flight_category || '—'}</span>
+              </div>
+              <div className="bg-white dark:bg-zinc-900 rounded border border-border p-2 flex flex-col items-center justify-center">
+                <span className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">Temperature</span>
+                {metarLoading ? (
+                  <div className="h-6 w-12 animate-pulse bg-muted rounded my-1" />
+                ) : (
+                  <span className="text-xl font-light leading-none mt-1">
+                    {metar?.temp != null ? `${metar.temp} °C` : '—'}
+                  </span>
+                )}
+              </div>
+              <div className="bg-white dark:bg-zinc-900 rounded border border-border p-2 flex flex-col items-center justify-center">
+                <span className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">Wind</span>
+                {metarLoading ? (
+                  <div className="h-5 w-10 animate-pulse bg-muted rounded my-1" />
+                ) : metar?.wind_speed != null ? (
+                  <ArrowDown className="h-5 w-5 text-muted-foreground mb-1" style={{ transform: `rotate(${metar.wind_dir}deg)` }} />
+                ) : (
+                  <Wind className="h-4 w-4 text-muted-foreground mb-1" />
+                )}
+                <span className="font-semibold text-[11px]">
+                  {metar?.wind_speed != null
+                    ? `${metar.wind_dir}° ${metar.wind_speed} kts${metar.wind_gust ? ` (G ${metar.wind_gust})` : ''}`
+                    : '—'}
+                </span>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-zinc-900 border border-border rounded overflow-hidden">
+              <button
+                onClick={onToggleMetar}
+                className="w-full py-2 flex items-center justify-center gap-2 text-blue-500 hover:bg-muted text-sm font-medium transition-colors"
+              >
+                <CloudRain className="h-4 w-4" />
+                More weather &amp; METAR
+                {showMetarDetails ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </button>
+
+              {showMetarDetails && (
+                <div className="border-t border-border p-3 space-y-3">
+                  {metarLoading ? (
+                    <p className="text-xs text-center text-muted-foreground">Loading weather data...</p>
+                  ) : metar ? (
+                    <>
+                      <div className="grid grid-cols-3 gap-2 text-center">
+                        <div>
+                          <span className="text-[10px] text-muted-foreground uppercase">Altimeter</span>
+                          <p className="text-xs font-semibold">{metar.altimeter} hPa</p>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-muted-foreground uppercase">Dew Point</span>
+                          <p className="text-xs font-semibold">{metar.dewpoint} °C</p>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-muted-foreground uppercase">Humidity</span>
+                          <p className="text-xs font-semibold">{calculateHumidity(metar.temp, metar.dewpoint)} %</p>
+                        </div>
+                      </div>
+                      <div className="pt-2 border-t border-border/50">
+                        <span className="text-[10px] text-muted-foreground uppercase">Latest METAR</span>
+                        <p className="text-xs font-mono mt-1 text-muted-foreground leading-relaxed break-words">
+                          {metar.raw}
+                        </p>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-xs text-center text-muted-foreground">No METAR data available for this airport.</p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="bg-white dark:bg-zinc-900 border border-border rounded-lg overflow-hidden mt-2 shadow-sm">
+              <button
+                onClick={onToggleStats}
+                className="w-full py-2.5 px-3 flex items-center justify-between hover:bg-muted/50 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-muted-foreground">
+                    <path d="M3 3v18h18" />
+                    <path d="M18 17V9" />
+                    <path d="M13 17V5" />
+                    <path d="M8 17v-3" />
+                  </svg>
+                  <span className="text-[13px] font-bold text-foreground tracking-wide uppercase">Airport Statistics</span>
+                  <span className="bg-muted border border-border text-[9px] font-bold px-2 py-0.5 rounded text-muted-foreground">LIVE</span>
+                </div>
+                {showStats ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+              </button>
+
+              {showStats && (
+                <div className="border-t border-border p-3 space-y-3 bg-muted/10">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="bg-background rounded-md border border-border p-2.5">
+                      <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Live Departures</span>
+                      <p className="font-bold text-sm text-foreground mt-1">{departures.length}</p>
+                    </div>
+                    <div className="bg-background rounded-md border border-border p-2.5">
+                      <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Live Arrivals</span>
+                      <p className="font-bold text-sm text-foreground mt-1">{arrivals.length}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'departures' && (
+          <div>
+            {departures.length === 0 ? (
+              <div className="p-8 text-center text-muted-foreground space-y-2">
+                <PlaneTakeoff className="h-8 w-8 mx-auto opacity-50" />
+                <p className="text-sm">No live departures from {airport.iata || airport.icao}.</p>
+                <p className="text-xs opacity-70">Turn on VATSIM in the Flights tab to see more.</p>
+              </div>
+            ) : (
+              departures.map(p => (
+                <LiveFlightRow key={p.key} pilot={p} airport={airport} type="departure" onShowOnMap={onShowOnMap} />
+              ))
+            )}
+          </div>
+        )}
+
+        {activeTab === 'arrivals' && (
+          <div>
+            {arrivals.length === 0 ? (
+              <div className="p-8 text-center text-muted-foreground space-y-2">
+                <PlaneLanding className="h-8 w-8 mx-auto opacity-50" />
+                <p className="text-sm">No live arrivals into {airport.iata || airport.icao}.</p>
+                <p className="text-xs opacity-70">Turn on VATSIM in the Flights tab to see more.</p>
+              </div>
+            ) : (
+              arrivals.map(p => (
+                <LiveFlightRow key={p.key} pilot={p} airport={airport} type="arrival" onShowOnMap={onShowOnMap} />
+              ))
+            )}
+          </div>
+        )}
+
+        {activeTab === 'ground' && (
+          <div>
+             {ground.length === 0 ? (
+              <div className="p-8 text-center text-muted-foreground space-y-2">
+                <Plane className="h-8 w-8 mx-auto opacity-50" />
+                <p className="text-sm">No aircraft on ground.</p>
+                <p className="text-xs opacity-70">Planes with altitude &lt; 100ft near the airport appear here.</p>
+              </div>
+            ) : (
+              ground.map(p => (
+                <LiveFlightRow key={p.key} pilot={p} airport={airport} type="ground" onShowOnMap={onShowOnMap} />
+              ))
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="absolute bottom-0 left-0 right-0 bg-background border-t border-border flex items-stretch h-12 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+        <button
+          onClick={() => setActiveTab('general')}
+          className={`flex-1 flex flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors ${
+            activeTab === 'general' ? 'text-yellow-500 border-b-2 border-yellow-500' : 'text-muted-foreground hover:bg-muted/50'
+          }`}
+        >
+          <MapPin className="h-4 w-4" />
+          General
+        </button>
+        <button
+          onClick={() => setActiveTab('departures')}
+          className={`flex-1 flex flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors ${
+            activeTab === 'departures' ? 'text-yellow-500 border-b-2 border-yellow-500' : 'text-muted-foreground hover:bg-muted/50'
+          }`}
+        >
+          <PlaneTakeoff className="h-4 w-4" />
+          Departures
+        </button>
+        <button
+          onClick={() => setActiveTab('arrivals')}
+          className={`flex-1 flex flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors ${
+            activeTab === 'arrivals' ? 'text-yellow-500 border-b-2 border-yellow-500' : 'text-muted-foreground hover:bg-muted/50'
+          }`}
+        >
+          <PlaneLanding className="h-4 w-4" />
+          Arrivals
+        </button>
+        <button
+          onClick={() => setActiveTab('ground')}
+          className={`flex-1 flex flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors ${
+            activeTab === 'ground' ? 'text-yellow-500 border-b-2 border-yellow-500' : 'text-muted-foreground hover:bg-muted/50'
+          }`}
+        >
+          <Plane className="h-4 w-4" />
+          On Ground
+        </button>
+      </div>
+    </div>
+  )
+}

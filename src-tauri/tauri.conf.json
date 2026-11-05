@@ -1,0 +1,58 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "productName": "Aervox",
+  "mainBinaryName": "Aervox",
+  "version": "0.0.2",
+  "identifier": "com.aervox.app",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:5173",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Aervox",
+        "width": 1640,
+        "height": 1215,
+        "minWidth": 960,
+        "minHeight": 600,
+        "resizable": true,
+        "fullscreen": false
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "createUpdaterArtifacts": true,
+    "targets": ["msi", "nsis"],
+    "resources": ["SimConnect.dll"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "windows": {
+      "nsis": {
+        "installerIcon": "icons/aervox.ico"
+      }
+    },
+    "android": {
+      "debugApplicationIdSuffix": ".debug"
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEY0MTg4NkZDRjcxNUVBNDMKUldSRDZoWDMvSVlZOU1EVlVHNUppcTZyVTZDU2w3M0lMZUY1UE9sSk52T1BwcGN0b3Z1N0NEQlUK",
+      "endpoints": [
+        "https://github.com/<YOUR_GITHUB_USERNAME>/msfs-company-app/releases/latest/download/latest.json"
+      ]
+    }
+  }
+}
