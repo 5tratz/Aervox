@@ -2,7 +2,7 @@
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Aervox",
   "mainBinaryName": "Aervox",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "identifier": "com.aervox.app",
   "build": {
     "frontendDist": "../dist",
