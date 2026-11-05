@@ -14,6 +14,7 @@ import { useTheme } from 'next-themes'
 import tzlookup from 'tz-lookup'
 import { getAirport } from '@/lib/airports'
 import { useFlightLog, type FlightRecord } from '@/lib/flight-log-context'
+import { useLocale } from '@/lib/locale-context'
 import {
   Tooltip as UITooltip,
   TooltipContent,
@@ -140,7 +141,7 @@ function MapBounds({ path }: { path: [number, number][] }) {
 
 type LandingBand = { label: string; color: string; pill: string; barColor: string; maxFpm: number }
 
-function landingStatus(fpm: number | null): {
+function landingStatus(fpm: number | null, t: any): {
   label: string
   color: string
   pill: string
@@ -148,14 +149,14 @@ function landingStatus(fpm: number | null): {
   pct: number
 } {
   const bands: LandingBand[] = [
-    { label: 'Smooth', color: 'text-emerald-500', pill: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20', barColor: 'bg-emerald-500', maxFpm: 200 },
-    { label: 'Firm', color: 'text-yellow-500', pill: 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/20', barColor: 'bg-yellow-500', maxFpm: 400 },
-    { label: 'Hard', color: 'text-orange-500', pill: 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20', barColor: 'bg-orange-500', maxFpm: 700 },
-    { label: 'Very Hard', color: 'text-red-500', pill: 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20', barColor: 'bg-red-500', maxFpm: 2000 },
+    { label: t('debrief.smooth'), color: 'text-emerald-500', pill: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20', barColor: 'bg-emerald-500', maxFpm: 200 },
+    { label: t('debrief.firm'), color: 'text-yellow-500', pill: 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/20', barColor: 'bg-yellow-500', maxFpm: 400 },
+    { label: t('debrief.hard'), color: 'text-orange-500', pill: 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20', barColor: 'bg-orange-500', maxFpm: 700 },
+    { label: t('debrief.veryHard'), color: 'text-red-500', pill: 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20', barColor: 'bg-red-500', maxFpm: 2000 },
   ]
 
   if (fpm == null) {
-    return { label: 'Unknown', color: 'text-muted-foreground', pill: 'bg-muted text-muted-foreground border-border', barColor: 'bg-muted-foreground', pct: 0 }
+    return { label: t('common.unknown'), color: 'text-muted-foreground', pill: 'bg-muted text-muted-foreground border-border', barColor: 'bg-muted-foreground', pct: 0 }
   }
 
   const abs = Math.abs(fpm)
@@ -165,26 +166,26 @@ function landingStatus(fpm: number | null): {
   return { label: band.label, color: band.color, pill: band.pill, barColor: band.barColor, pct }
 }
 
-function deriveStats(flight: FlightRecord) {
+function deriveStats(flight: FlightRecord, t: any) {
   const blockHours = flight.blockMinutes > 0 ? flight.blockMinutes / 60 : 0
   const avgSpeedKts = blockHours > 0 ? flight.totalDistanceNm / blockHours : 0
 
   const startMs = toMs(flight.startTime)
   const hour = startMs ? new Date(startMs).getUTCHours() : 0
-  let timeOfDay = 'Day'
-  if (hour >= 5 && hour < 12) timeOfDay = 'Morning'
-  else if (hour >= 12 && hour < 17) timeOfDay = 'Afternoon'
-  else if (hour >= 17 && hour < 21) timeOfDay = 'Evening'
-  else timeOfDay = 'Night'
+  let timeOfDay = t('debrief.day')
+  if (hour >= 5 && hour < 12) timeOfDay = t('debrief.morning')
+  else if (hour >= 12 && hour < 17) timeOfDay = t('debrief.afternoon')
+  else if (hour >= 17 && hour < 21) timeOfDay = t('debrief.evening')
+  else timeOfDay = t('debrief.night')
 
   return { avgSpeedKts, timeOfDay }
 }
 
-function AltitudeSparkline({ profile, className }: { profile: number[]; className?: string }) {
+function AltitudeSparkline({ profile, className, t }: { profile: number[]; className?: string; t: any }) {
   if (!profile || profile.length < 2) {
     return (
       <div className={`flex items-center justify-center text-[10px] text-muted-foreground ${className ?? ''}`}>
-        No altitude data recorded
+        {t('debrief.noAltitude')}
       </div>
     )
   }
@@ -243,7 +244,7 @@ function AltitudeSparkline({ profile, className }: { profile: number[]; classNam
         />
       </svg>
       <div className="absolute top-0.5 right-1.5 text-[9px] font-mono text-muted-foreground">
-        Peak {peakAlt.toLocaleString()} ft
+        {t('debrief.peak')} {peakAlt.toLocaleString()} ft
       </div>
     </div>
   )
@@ -252,6 +253,7 @@ function AltitudeSparkline({ profile, className }: { profile: number[]; classNam
 export function FlightDebriefPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { t } = useLocale()
   const { theme } = useTheme()
   const { flights } = useFlightLog()
 
@@ -267,9 +269,9 @@ export function FlightDebriefPage() {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-4">
         <Plane className="h-10 w-10 text-muted-foreground/30" />
-        <p className="text-sm text-muted-foreground">Flight not found.</p>
+        <p className="text-sm text-muted-foreground">{t('debrief.flightNotFound')}</p>
         <Button variant="outline" onClick={() => navigate('/logbook')}>
-          <ArrowLeft className="h-4 w-4 mr-2" /> Back to Logbook
+          <ArrowLeft className="h-4 w-4 mr-2" /> {t('common.backToLogbook')}
         </Button>
       </div>
     )
@@ -287,7 +289,7 @@ export function FlightDebriefPage() {
 
   const hasRecordedTrack = !!(flight.track && flight.track.length >= 2)
   const cleanedAircraft = cleanAircraftName(flight.aircraft)
-  const landing = landingStatus(flight.landingRateFpm)
+  const landing = landingStatus(flight.landingRateFpm, t)
 
   const depTz = getTimezone(flight.departure)
   const arrTz = getTimezone(flight.arrival)
@@ -298,7 +300,7 @@ export function FlightDebriefPage() {
   const depFlag = flagOf(flight.departure)
   const arrFlag = flagOf(flight.arrival)
 
-  const { avgSpeedKts, timeOfDay } = deriveStats(flight)
+  const { avgSpeedKts, timeOfDay } = deriveStats(flight, t)
 
   return (
     <div className="h-full flex flex-col space-y-4 pb-4">
@@ -310,7 +312,7 @@ export function FlightDebriefPage() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Flight Debrief</h1>
+            <h1 className="text-2xl font-bold tracking-tight">{t('debrief.title')}</h1>
             <p className="text-sm text-muted-foreground">
               {fmtDateUTC(flight.startTime)} · {flight.flightNumber || flight.callsign}
             </p>
@@ -318,7 +320,7 @@ export function FlightDebriefPage() {
         </div>
         <div className="flex items-center gap-2">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-3 py-1 text-xs font-semibold">
-            <CheckCircle2 className="h-3.5 w-3.5" /> Completed
+            <CheckCircle2 className="h-3.5 w-3.5" /> {t('debrief.completed')}
           </span>
         </div>
       </div>
@@ -331,14 +333,14 @@ export function FlightDebriefPage() {
             {/* Departure */}
             <div className="p-4 sm:p-5">
               <div className="mb-2">
-                <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Departure</span>
+                <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">{t('debrief.departure')}</span>
               </div>
               <div className="flex items-center gap-2">
                 {depFlag && <img src={depFlag} alt="" className="w-5 h-3.5 object-cover rounded-[2px]" />}
                 <span className="text-2xl font-bold font-mono leading-tight">{flight.departure || '???'}</span>
               </div>
               <div className="text-[11px] text-muted-foreground mt-0.5 truncate">
-                {getAirport(flight.departure)?.name || 'Unknown'}
+                {getAirport(flight.departure)?.name || t('common.unknown')}
               </div>
               <div className="mt-3 flex items-baseline gap-2">
                 <span className="text-lg font-bold font-mono">{depLocal.time}</span>
@@ -359,7 +361,7 @@ export function FlightDebriefPage() {
                 <div className="h-px w-5 bg-border" />
               </div>
               <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
-                Block Time
+                {t('debrief.blockTime')}
               </div>
               <div className="text-sm font-bold font-mono mt-0.5">{fmtDuration(flight.blockMinutes)}</div>
               <div className="text-[10px] text-muted-foreground mt-1 text-center">
@@ -371,14 +373,14 @@ export function FlightDebriefPage() {
             {/* Arrival */}
             <div className="p-4 sm:p-5 text-right">
               <div className="mb-2">
-                <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Arrival</span>
+                <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">{t('debrief.arrival')}</span>
               </div>
               <div className="flex items-center gap-2 justify-end">
                 <span className="text-2xl font-bold font-mono leading-tight">{flight.arrival || '???'}</span>
                 {arrFlag && <img src={arrFlag} alt="" className="w-5 h-3.5 object-cover rounded-[2px]" />}
               </div>
               <div className="text-[11px] text-muted-foreground mt-0.5 truncate">
-                {getAirport(flight.arrival)?.name || 'Unknown'}
+                {getAirport(flight.arrival)?.name || t('common.unknown')}
               </div>
               <div className="mt-3 flex items-baseline gap-2 justify-end">
                 <span className="text-[11px] text-muted-foreground">{arrLocal.date}</span>
@@ -405,7 +407,7 @@ export function FlightDebriefPage() {
             <Card>
               <CardContent className="p-3">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Duration</span>
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{t('debrief.duration')}</span>
                   <Clock className="h-3.5 w-3.5 text-primary" />
                 </div>
                 <div className="text-lg font-bold font-mono">{fmtDuration(flight.blockMinutes)}</div>
@@ -414,7 +416,7 @@ export function FlightDebriefPage() {
             <Card>
               <CardContent className="p-3">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Distance</span>
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{t('debrief.distance')}</span>
                   <TrendingUp className="h-3.5 w-3.5 text-primary" />
                 </div>
                 <div className="text-lg font-bold font-mono">{Math.round(flight.totalDistanceNm)}<span className="text-xs font-normal ml-1">nm</span></div>
@@ -426,7 +428,7 @@ export function FlightDebriefPage() {
           <Card>
             <CardHeader className="pb-2 pt-3 px-4">
               <CardTitle className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                Landing Rating
+                {t('debrief.landingRating')}
                 <TooltipProvider>
                   <UITooltip>
                     <TooltipTrigger asChild>
@@ -435,26 +437,26 @@ export function FlightDebriefPage() {
                     <TooltipContent side="top" className="w-64 p-3 bg-background text-foreground border-border shadow-md">
                       <div className="space-y-3">
                         <div>
-                          <p className="font-semibold text-sm mb-1">Landing Rating</p>
+                          <p className="font-semibold text-sm mb-1">{t('debrief.landingRating')}</p>
                           <p className="text-[11px] text-muted-foreground leading-relaxed">
-                            Based on your vertical speed at touchdown, measured in feet per minute (fpm).
+                            {t('debrief.landingInfo')}
                           </p>
                         </div>
                         <div className="space-y-2">
                           <div className="flex items-center justify-between text-xs">
-                            <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-emerald-500" /><span className="font-medium">Smooth</span></div>
+                            <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-emerald-500" /><span className="font-medium">{t('debrief.smooth')}</span></div>
                             <span className="font-mono text-[10px] text-muted-foreground">&lt; 200</span>
                           </div>
                           <div className="flex items-center justify-between text-xs">
-                            <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-yellow-500" /><span className="font-medium">Firm</span></div>
+                            <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-yellow-500" /><span className="font-medium">{t('debrief.firm')}</span></div>
                             <span className="font-mono text-[10px] text-muted-foreground">200 – 400</span>
                           </div>
                           <div className="flex items-center justify-between text-xs">
-                            <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-orange-500" /><span className="font-medium">Hard</span></div>
+                            <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-orange-500" /><span className="font-medium">{t('debrief.hard')}</span></div>
                             <span className="font-mono text-[10px] text-muted-foreground">400 – 700</span>
                           </div>
                           <div className="flex items-center justify-between text-xs">
-                            <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-red-500" /><span className="font-medium">Very Hard</span></div>
+                            <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-red-500" /><span className="font-medium">{t('debrief.veryHard')}</span></div>
                             <span className="font-mono text-[10px] text-muted-foreground">&gt; 700</span>
                           </div>
                         </div>
@@ -482,10 +484,10 @@ export function FlightDebriefPage() {
                   />
                 </div>
                 <div className="flex items-center justify-between mt-1.5 text-[9px] text-muted-foreground uppercase tracking-wider font-semibold">
-                  <span>Smooth</span>
-                  <span>Firm</span>
-                  <span>Hard</span>
-                  <span>Very Hard</span>
+                  <span>{t('debrief.smooth')}</span>
+                  <span>{t('debrief.firm')}</span>
+                  <span>{t('debrief.hard')}</span>
+                  <span>{t('debrief.veryHard')}</span>
                 </div>
               </div>
             </CardContent>
@@ -495,44 +497,44 @@ export function FlightDebriefPage() {
           <Card className="flex-1 flex flex-col">
             <CardHeader className="pb-2 pt-3 px-4">
               <CardTitle className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Flight Details
+                {t('debrief.flightDetails')}
               </CardTitle>
             </CardHeader>
             <CardContent className="px-4 pb-4 pt-0 text-xs flex-1 flex flex-col justify-between">
               <div className="space-y-3 flex-1 flex flex-col justify-around">
                 <div className="flex items-center justify-between py-1">
                   <span className="text-muted-foreground flex items-center gap-1.5">
-                    <Plane className="h-3 w-3" /> Aircraft
+                    <Plane className="h-3 w-3" /> {t('debrief.aircraft')}
                   </span>
                   <span className="font-mono font-semibold">{cleanedAircraft}</span>
                 </div>
                 <div className="flex items-center justify-between py-1">
                   <span className="text-muted-foreground flex items-center gap-1.5">
-                    <Hash className="h-3 w-3" /> Flight Number
+                    <Hash className="h-3 w-3" /> {t('debrief.flightNumber')}
                   </span>
                   <span className="font-mono">{flight.flightNumber || flight.callsign}</span>
                 </div>
                 <div className="flex items-center justify-between py-1">
                   <span className="text-muted-foreground flex items-center gap-1.5">
-                    <Gauge className="h-3 w-3" /> Avg Speed
+                    <Gauge className="h-3 w-3" /> {t('debrief.avgSpeed')}
                   </span>
                   <span className="font-mono font-semibold">{Math.round(avgSpeedKts)} kts</span>
                 </div>
                 <div className="flex items-center justify-between py-1">
                   <span className="text-muted-foreground flex items-center gap-1.5">
-                    <ArrowUpFromLine className="h-3 w-3" /> Took off
+                    <ArrowUpFromLine className="h-3 w-3" /> {t('debrief.tookOff')}
                   </span>
                   <span className="font-mono font-semibold">{fmtTimeUTC(flight.startTime)}Z</span>
                 </div>
                 <div className="flex items-center justify-between py-1">
                   <span className="text-muted-foreground flex items-center gap-1.5">
-                    <ArrowDownToLine className="h-3 w-3" /> Landed
+                    <ArrowDownToLine className="h-3 w-3" /> {t('debrief.landed')}
                   </span>
                   <span className="font-mono font-semibold">{fmtTimeUTC(flight.endTime)}Z</span>
                 </div>
                 <div className="flex items-center justify-between py-1">
                   <span className="text-muted-foreground flex items-center gap-1.5">
-                    <Clock className="h-3 w-3" /> Time of Day
+                    <Clock className="h-3 w-3" /> {t('debrief.timeOfDay')}
                   </span>
                   <span className="font-semibold">{timeOfDay}</span>
                 </div>
@@ -547,14 +549,14 @@ export function FlightDebriefPage() {
           <CardHeader className="pb-2 pt-3 border-b bg-muted/20 shrink-0">
             <div className="flex items-center justify-between">
               <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                {hasRecordedTrack ? 'Flight Trail' : 'Flight Route'}
+                {hasRecordedTrack ? t('debrief.trail') : t('debrief.route')}
               </CardTitle>
               <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
                 <span className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500" /> Departure
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" /> {t('debrief.departure')}
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-red-500" /> Arrival
+                  <span className="w-2 h-2 rounded-full bg-red-500" /> {t('debrief.arrival')}
                 </span>
               </div>
             </div>
@@ -610,16 +612,16 @@ export function FlightDebriefPage() {
           <div className="border-t border-border px-4 py-2 bg-muted/10 shrink-0">
             <div className="flex items-center justify-between mb-1">
               <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
-                Altitude Profile
+                {t('debrief.altitudeProfile')}
               </span>
               {flight.altitudeProfile && flight.altitudeProfile.length > 0 && (
                 <span className="text-[9px] text-muted-foreground font-mono">
-                  {flight.altitudeProfile.length} samples
+                  {flight.altitudeProfile.length} {t('debrief.samples')}
                 </span>
               )}
             </div>
             <div className="h-14 w-full">
-              <AltitudeSparkline profile={flight.altitudeProfile ?? []} className="h-full w-full" />
+              <AltitudeSparkline profile={flight.altitudeProfile ?? []} className="h-full w-full" t={t} />
             </div>
           </div>
         </Card>

@@ -195,9 +195,9 @@ function Shell() {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Update available</DialogTitle>
+            <DialogTitle>{t('common.updateAvailable')}</DialogTitle>
             <DialogDescription>
-              Aervox {updateInfo?.version} is ready to install.
+              Aervox {updateInfo?.version} {t('common.readyToInstall')}
               {updateInfo?.body ? (
                 <>
                   <br />
@@ -210,10 +210,10 @@ function Shell() {
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={dismissUpdate} disabled={installing}>
-              Later
+              {t('common.later')}
             </Button>
             <Button onClick={() => void installUpdate()} disabled={installing}>
-              {installing ? 'Installing…' : 'Install now'}
+              {installing ? t('common.installing') : t('common.installNow')}
             </Button>
           </DialogFooter>
         </DialogContent>

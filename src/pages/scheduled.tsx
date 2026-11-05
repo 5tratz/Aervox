@@ -7,6 +7,7 @@ import { cleanAircraftName } from '@/components/map/panels/airport-utils'
 import { getAirport } from '@/lib/airports'
 import { computeLiveSchedule, type LiveFlight } from '@/lib/live-schedule'
 import { ScheduledFlightModal } from '@/components/scheduled-flight-modal'
+import { useLocale } from '@/lib/locale-context'
 import tzlookup from 'tz-lookup'
 import {
   Tooltip,
@@ -16,15 +17,6 @@ import {
 } from '@/components/ui/tooltip'
 
 type AircraftFamily = 'all' | 'A320' | 'B737' | 'Widebody' | 'Turboprop' | 'Regional' | 'Other'
-
-const FAMILY_LABELS: Record<Exclude<AircraftFamily, 'all'>, string> = {
-  A320: 'Airbus A320 Family',
-  B737: 'Boeing 737 Family',
-  Widebody: 'Widebody / Long Haul',
-  Turboprop: 'Turboprop',
-  Regional: 'Regional Jet',
-  Other: 'Other',
-}
 
 function formatDuration(mins: number) {
   const h = Math.floor(mins / 60)
@@ -70,20 +62,8 @@ function getLocalParts(icao: string, utcMs: number): { time: string, date: strin
   }
 }
 
-function statusBadge(status: LiveFlight['status'], mins: number) {
-  if (status === 'departed') {
-    return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/10 text-red-400 border border-red-500/20 whitespace-nowrap">Departed</span>
-  }
-  if (status === 'arriving') {
-    return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/10 text-blue-500 border border-blue-500/20 whitespace-nowrap">Arriving</span>
-  }
-  if (status === 'boarding' || mins <= 30) {
-    return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 whitespace-nowrap"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"/> Boarding</span>
-  }
-  return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-muted text-muted-foreground border border-border whitespace-nowrap"><Clock className="w-2.5 h-2.5"/> In {mins}m</span>
-}
-
 export function ScheduledPage() {
+  const { t } = useLocale()
   const [live, setLive] = useState<LiveFlight[]>([])
   const [search, setSearch] = useState('')
   const [filterAirline, setFilterAirline] = useState<string>('all')
@@ -91,6 +71,28 @@ export function ScheduledPage() {
   const [filterFamily, setFilterFamily] = useState<AircraftFamily>('all')
   const [filterCountry, setFilterCountry] = useState<string>('all')
   const [selected, setSelected] = useState<LiveFlight | null>(null)
+
+  const FAMILY_LABELS: Record<Exclude<AircraftFamily, 'all'>, string> = {
+    A320: t('scheduled.familyA320'),
+    B737: t('scheduled.familyB737'),
+    Widebody: t('scheduled.familyWidebody'),
+    Turboprop: t('scheduled.familyTurboprop'),
+    Regional: t('scheduled.familyRegional'),
+    Other: t('scheduled.familyOther'),
+  }
+
+  const statusBadge = (status: LiveFlight['status'], mins: number) => {
+    if (status === 'departed') {
+      return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/10 text-red-400 border border-red-500/20 whitespace-nowrap">{t('scheduled.statusDeparted')}</span>
+    }
+    if (status === 'arriving') {
+      return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/10 text-blue-500 border border-blue-500/20 whitespace-nowrap">{t('scheduled.statusArriving')}</span>
+    }
+    if (status === 'boarding' || mins <= 30) {
+      return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 whitespace-nowrap"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"/> {t('scheduled.statusBoarding')}</span>
+    }
+    return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-muted text-muted-foreground border border-border whitespace-nowrap"><Clock className="w-2.5 h-2.5"/> {t('scheduled.statusIn')} {mins}m</span>
+  }
 
   useEffect(() => {
     const load = () => setLive(computeLiveSchedule())
@@ -150,10 +152,10 @@ export function ScheduledPage() {
       <div className="flex items-center justify-between gap-3 shrink-0 flex-wrap">
         <div>
           <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Calendar className="h-6 w-6 text-primary" /> Airline Schedules
+            <Calendar className="h-6 w-6 text-primary" /> {t('scheduled.title')}
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Live timetable — flights departing within the next 24 hours.
+            {t('scheduled.desc')}
           </p>
         </div>
         <Button
@@ -163,17 +165,16 @@ export function ScheduledPage() {
           className="gap-2"
         >
           <RefreshCw className="h-4 w-4" />
-          Refresh
+          {t('scheduled.refresh')}
         </Button>
       </div>
 
-      {/* Search + filters on one row. Search grows to fill; filters stay on the right. */}
       <div className="flex items-center gap-2 flex-wrap shrink-0">
         <div className="relative flex-1 min-w-[180px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Search flight number, route, airline..."
+            placeholder={t('scheduled.searchPlaceholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-9 pr-3 py-2 rounded-md bg-background border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
@@ -185,7 +186,7 @@ export function ScheduledPage() {
           onChange={(e) => setFilterAirline(e.target.value)}
           className="px-3 py-2 rounded-md bg-background border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 shrink-0"
         >
-          <option value="all">All Airlines</option>
+          <option value="all">{t('scheduled.allAirlines')}</option>
           {airlines.map(a => <option key={a} value={a}>{a}</option>)}
         </select>
         <select
@@ -193,7 +194,7 @@ export function ScheduledPage() {
           onChange={(e) => setFilterCountry(e.target.value)}
           className="px-3 py-2 rounded-md bg-background border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 shrink-0"
         >
-          <option value="all">Departing From (All)</option>
+          <option value="all">{t('scheduled.departingFrom')}</option>
           {countries.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
         <select
@@ -201,7 +202,7 @@ export function ScheduledPage() {
           onChange={(e) => setFilterFamily(e.target.value as AircraftFamily)}
           className="px-3 py-2 rounded-md bg-background border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 shrink-0"
         >
-          <option value="all">All Aircraft Families</option>
+          <option value="all">{t('scheduled.allAircraft')}</option>
           {families.map(f => (
             <option key={f} value={f}>{FAMILY_LABELS[f]}</option>
           ))}
@@ -216,7 +217,7 @@ export function ScheduledPage() {
                 filterNetwork === k ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'
               }`}
             >
-              {k === 'all' ? 'All' : `${k} Haul`}
+              {k === 'all' ? t('common.all') : k === 'short' ? t('scheduled.shortHaul') : t('scheduled.longHaul')}
             </button>
           ))}
         </div>
@@ -227,7 +228,7 @@ export function ScheduledPage() {
           <CardContent className="flex-1 flex flex-col items-center justify-center text-center py-16">
             <Calendar className="h-12 w-12 text-muted-foreground/30 mb-4" />
             <p className="text-sm text-muted-foreground">
-              No flights match your filters.
+              {t('scheduled.noFlights')}
             </p>
           </CardContent>
         ) : (
@@ -235,13 +236,13 @@ export function ScheduledPage() {
             <table className="w-full text-sm">
               <thead className="bg-muted/50 border-b border-border sticky top-0 z-10">
                 <tr>
-                  <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Airline</th>
-                  <th className="text-center px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Flight</th>
-                  <th className="text-center px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Aircraft</th>
-                  <th className="text-center px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Route</th>
-                  <th className="text-center px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Departure Time</th>
-                  <th className="text-center px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Duration</th>
-                  <th className="text-center px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Status</th>
+                  <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{t('scheduled.colAirline')}</th>
+                  <th className="text-center px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{t('scheduled.colFlight')}</th>
+                  <th className="text-center px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{t('scheduled.colAircraft')}</th>
+                  <th className="text-center px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{t('scheduled.colRoute')}</th>
+                  <th className="text-center px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{t('scheduled.colDeparture')}</th>
+                  <th className="text-center px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{t('scheduled.colDuration')}</th>
+                  <th className="text-center px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{t('scheduled.colStatus')}</th>
                 </tr>
               </thead>
               <tbody>

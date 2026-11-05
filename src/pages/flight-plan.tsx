@@ -13,6 +13,7 @@ import { formatOFPText, type SimbriefOFP } from '@/lib/simbrief'
 import { useSimbrief } from '@/lib/simbrief-context'
 import { usePilot } from '@/lib/pilot-context'
 import { useAcceptedFlight } from '@/lib/accepted-flight-context'
+import { useLocale } from '@/lib/locale-context'
 
 import { save } from '@tauri-apps/plugin-dialog'
 import { writeFile } from '@tauri-apps/plugin-fs'
@@ -119,6 +120,7 @@ function ErrorMessage({ message }: { message: string }) {
 
 export function FlightPlanPage() {
   const navigate = useNavigate()
+  const { t } = useLocale()
   const { theme } = useTheme()
   const { ofp, loading, error, pilotId, refresh, clear: clearOFP } = useSimbrief()
   const { pilot } = usePilot()
@@ -134,7 +136,7 @@ export function FlightPlanPage() {
   const handleClearAll = async () => {
     await clearAccepted()
     clearOFP()
-    toast.success('Flight plan cleared')
+    toast.success(t('plan.planCleared'))
   }
 
   const ofpText = useMemo(() => (ofp ? formatOFPText(ofp) : ''), [ofp])
@@ -172,11 +174,11 @@ export function FlightPlanPage() {
         const pdfBytes = doc.output('arraybuffer')
         await writeFile(filePath, new Uint8Array(pdfBytes))
 
-        toast.success('Flight plan saved as PDF successfully')
+        toast.success(t('plan.savedPdf'))
       }
     } catch (err) {
       console.error('Failed to save PDF:', err)
-      toast.error('Failed to save the PDF.')
+      toast.error(t('plan.saveFailed'))
     }
   }
 
@@ -195,7 +197,7 @@ export function FlightPlanPage() {
     if (ofpMatchesAccepted && accepted) {
       const timer = setTimeout(() => {
         clearAccepted()
-        toast.success(`${accepted.flightNumber} cleared — OFP loaded successfully.`)
+        toast.success(`${accepted.flightNumber} ${t('plan.clearedToast')}`)
       }, 3000)
       return () => clearTimeout(timer)
     }
@@ -207,7 +209,7 @@ export function FlightPlanPage() {
       <div className="flex items-center justify-between gap-3 shrink-0">
         <div>
           <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Plane className="h-6 w-6 text-primary" /> Flight Plan
+            <Plane className="h-6 w-6 text-primary" /> {t('plan.title')}
             {pilot.callsign && (
               <span className="inline-flex items-center gap-1 text-xs font-mono font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded border border-primary/20 ml-2">
                 {pilot.callsign}
@@ -220,36 +222,36 @@ export function FlightPlanPage() {
             )}
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Operational flight plan imported from SimBrief.
+            {t('plan.desc')}
           </p>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
           {lastUpdated && (
             <span className="text-xs text-muted-foreground font-mono hidden sm:inline-block mr-2">
-              Updated {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              {t('plan.updated')} {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </span>
           )}
           <Button
             size="default"
             onClick={handleFetch}
             disabled={loading || !pilotId}
-            title={!pilotId ? 'Set your SimBrief Pilot ID on your Profile first' : undefined}
+            title={!pilotId ? t('plan.missingId') : undefined}
             className="shadow-sm"
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            {loading ? 'Fetching…' : 'Fetch OFP'}
+            {loading ? t('plan.fetching') : t('plan.fetchOfp')}
           </Button>
           <Button
             variant="destructive"
             size="default"
             onClick={handleClearAll}
             disabled={!ofp}
-            title="Clear the current flight plan"
+            title={t('plan.planCleared')}
             className="shadow-sm"
           >
             <Trash2 className="h-4 w-4 mr-2" />
-            Clear
+            {t('plan.clear')}
           </Button>
         </div>
       </div>
@@ -272,13 +274,13 @@ export function FlightPlanPage() {
               <div className="min-w-0">
                 <div className="font-medium">
                   {ofpMatchesAccepted
-                    ? `✓ SimBrief OFP matches your accepted flight ${accepted.flightNumber}`
-                    : `You're accepted for ${accepted.flightNumber} (${accepted.departure} → ${accepted.arrival})`}
+                    ? `✓ ${t('plan.matchesAccepted')} ${accepted.flightNumber}`
+                    : `${t('plan.accepted')} ${accepted.flightNumber} (${accepted.departure} → ${accepted.arrival})`}
                 </div>
                 <div className="text-xs text-muted-foreground mt-0.5">
                   {ofpMatchesAccepted
-                    ? 'Everything is in sync.'
-                    : 'Click Fetch OFP above once you generate a matching plan on SimBrief.'}
+                    ? t('plan.everythingSync')
+                    : t('plan.syncPrompt')}
                 </div>
               </div>
             </div>
@@ -288,7 +290,7 @@ export function FlightPlanPage() {
               onClick={clearAccepted}
               className="shrink-0"
             >
-              Clear
+              {t('common.clear')}
             </Button>
           </CardContent>
         </Card>
@@ -299,10 +301,10 @@ export function FlightPlanPage() {
           <CardContent className="flex items-center justify-between py-4 text-sm">
             <div className="flex items-center gap-3 text-amber-600 dark:text-amber-400">
               <AlertTriangle className="h-5 w-5 shrink-0" />
-              <span>You need to set your SimBrief Pilot ID and generate a flight on SimBrief before you can fetch a flight plan.</span>
+              <span>{t('plan.missingId')}</span>
             </div>
             <Button variant="outline" size="sm" onClick={() => navigate('/profile')}>
-              Go to Profile
+              {t('plan.goToProfile')}
             </Button>
           </CardContent>
         </Card>
@@ -313,7 +315,7 @@ export function FlightPlanPage() {
           <CardContent className="flex items-start gap-3 py-4 text-sm">
             <AlertTriangle className="h-5 w-5 text-red-500 mt-0.5 shrink-0" />
             <div className="space-y-1">
-              <p className="font-semibold text-red-600 dark:text-red-400">Could not load OFP</p>
+              <p className="font-semibold text-red-600 dark:text-red-400">{t('plan.loadError')}</p>
               <ErrorMessage message={error} />
             </div>
           </CardContent>
@@ -326,7 +328,7 @@ export function FlightPlanPage() {
           <CardHeader className="pb-4 border-b bg-muted/20 shrink-0">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base font-semibold uppercase tracking-wider text-muted-foreground">
-                OFP Summary
+                {t('plan.ofpSummary')}
               </CardTitle>
               {ofp && (
                 <div className="flex items-center gap-2 text-xs font-mono bg-background border px-2 py-1 rounded-md shadow-sm">
@@ -339,7 +341,7 @@ export function FlightPlanPage() {
             <CardDescription className="mt-2 flex items-center gap-2 text-sm">
               {ofp ? (
                 <>
-                  <span className="font-medium text-foreground">{ofp.aircraft?.name || 'Unknown Aircraft'}</span>
+                  <span className="font-medium text-foreground">{ofp.aircraft?.name || t('common.unknown')}</span>
                   {ofp.aircraft?.reg && (
                     <>
                       <span className="text-muted-foreground">•</span>
@@ -348,7 +350,7 @@ export function FlightPlanPage() {
                   )}
                 </>
               ) : (
-                'No flight plan loaded.'
+                t('plan.noPlan')
               )}
             </CardDescription>
           </CardHeader>
@@ -361,7 +363,7 @@ export function FlightPlanPage() {
             ) : (
               <div className="h-full flex flex-col items-center justify-center text-sm text-muted-foreground space-y-3 min-h-[400px]">
                 <Plane className="h-10 w-10 opacity-20" />
-                <p>{loading ? 'Fetching OFP…' : pilotId ? 'Click Fetch OFP to load your plan.' : 'Set your ID on Profile first.'}</p>
+                <p>{loading ? t('plan.fetching') : pilotId ? t('plan.clickFetch') : t('plan.setIdFirst')}</p>
               </div>
             )}
           </CardContent>
@@ -376,7 +378,7 @@ export function FlightPlanPage() {
               disabled={loading || !pilotId}
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-              Fetch
+              {t('plan.fetch')}
             </Button>
             <Button
               variant="secondary"
@@ -385,7 +387,7 @@ export function FlightPlanPage() {
               disabled={!pilotId}
             >
               <ExternalLink className="h-4 w-4 mr-2" />
-              Open Web
+              {t('plan.openWeb')}
             </Button>
             <Button
               variant="secondary"
@@ -394,7 +396,7 @@ export function FlightPlanPage() {
               disabled={!ofp}
             >
               <Download className="h-4 w-4 mr-2" />
-              Save PDF
+              {t('plan.savePdf')}
             </Button>
           </CardContent>
         </Card>
@@ -402,7 +404,7 @@ export function FlightPlanPage() {
         <Card className="overflow-hidden shadow-md border-border/60 flex flex-col h-full min-h-0">
           <CardHeader className="pb-4 border-b bg-muted/20 shrink-0">
             <CardTitle className="text-base font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-              <MapPin className="h-4 w-4" /> Route Map
+              <MapPin className="h-4 w-4" /> {t('plan.routeMap')}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0 flex-1 relative min-h-0">
@@ -465,15 +467,15 @@ export function FlightPlanPage() {
             <div className="absolute bottom-4 left-4 z-[400] bg-background/90 backdrop-blur-sm border shadow-sm rounded-md px-3 py-2 flex flex-col gap-1.5 text-xs font-medium">
               <div className="flex items-center gap-2">
                 <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 border border-white shadow-sm" />
-                <span>Origin</span>
+                <span>{t('plan.origin')}</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-2.5 h-2.5 rounded-full bg-red-500 border border-white shadow-sm" />
-                <span>Destination</span>
+                <span>{t('plan.destination')}</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-2.5 h-2.5 rounded-full bg-amber-500 border border-white shadow-sm" />
-                <span>Alternate</span>
+                <span>{t('plan.alternate')}</span>
               </div>
             </div>
           </CardContent>

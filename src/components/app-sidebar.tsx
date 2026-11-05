@@ -33,12 +33,12 @@ export function AppSidebar() {
   // Nav structure: items can be links (with `to`) or category headers (without `to`)
   const nav = [
     { label: t('nav.dashboard'), to: '/', icon: LayoutDashboard },
-    { label: 'Flights', icon: Map, isHeader: true },
-    { label: 'Schedules', to: '/scheduled', icon: Calendar, isChild: true },
-    { label: 'Flight Plan', to: '/flight-plan', icon: Map, isChild: true },
-    { label: 'Logbook', to: '/logbook', icon: BookOpen, isChild: true },
-    { label: 'Profile', icon: User, isHeader: true },
-    { label: 'Options', to: '/profile', icon: SlidersHorizontal, isChild: true },
+    { label: t('nav.flights'), icon: Map, isHeader: true },
+    { label: t('nav.schedules'), to: '/scheduled', icon: Calendar, isChild: true },
+    { label: t('nav.flightPlan'), to: '/flight-plan', icon: Map, isChild: true },
+    { label: t('nav.logbook'), to: '/logbook', icon: BookOpen, isChild: true },
+    { label: t('nav.profile'), icon: User, isHeader: true },
+    { label: t('nav.options'), to: '/profile', icon: SlidersHorizontal, isChild: true },
   ]
 
   const bottom = [

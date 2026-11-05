@@ -1,4 +1,5 @@
 import { CloudRain, Wind } from 'lucide-react'
+import { useLocale } from '@/lib/locale-context'
 
 export function WeatherPanel({
   showWeather,
@@ -11,6 +12,8 @@ export function WeatherPanel({
   showWind: boolean
   onToggleWind: (v: boolean) => void
 }) {
+  const { t } = useLocale()
+
   return (
     <div className="p-4 space-y-4">
       
@@ -18,20 +21,20 @@ export function WeatherPanel({
       <div className="bg-muted/30 rounded border border-border overflow-hidden">
         <div className="p-3">
           <h3 className="font-semibold uppercase text-xs tracking-wider mb-2 flex items-center gap-2">
-            <CloudRain className="h-4 w-4" /> Rain Radar
+            <CloudRain className="h-4 w-4" /> {t('map.weatherRainRadar')}
           </h3>
           <div className="flex gap-3">
             <div className={`w-24 h-16 rounded shrink-0 flex items-center justify-center ${showWeather ? 'bg-emerald-500/20' : 'bg-muted'}`}>
               <CloudRain className={`h-6 w-6 ${showWeather ? 'text-emerald-500' : 'text-muted-foreground'}`} />
             </div>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Global rain radar. Overlays live precipitation on the map.
+              {t('map.weatherRainRadarDesc')}
             </p>
           </div>
         </div>
         <div className="flex border-t border-border">
-          <button onClick={() => onToggleWeather(true)} className={`flex-1 py-1.5 text-xs font-semibold ${showWeather ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}>On</button>
-          <button onClick={() => onToggleWeather(false)} className={`flex-1 py-1.5 text-xs font-semibold border-l border-border ${!showWeather ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}>Off</button>
+          <button onClick={() => onToggleWeather(true)} className={`flex-1 py-1.5 text-xs font-semibold ${showWeather ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}>{t('common.on')}</button>
+          <button onClick={() => onToggleWeather(false)} className={`flex-1 py-1.5 text-xs font-semibold border-l border-border ${!showWeather ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}>{t('common.off')}</button>
         </div>
       </div>
 
@@ -39,20 +42,20 @@ export function WeatherPanel({
       <div className="bg-muted/30 rounded border border-border overflow-hidden">
         <div className="p-3">
           <h3 className="font-semibold uppercase text-xs tracking-wider mb-2 flex items-center gap-2">
-            <Wind className="h-4 w-4" /> Wind
+            <Wind className="h-4 w-4" /> {t('map.weatherWind')}
           </h3>
           <div className="flex gap-3">
             <div className={`w-24 h-16 rounded shrink-0 flex items-center justify-center ${showWind ? 'bg-sky-500/20' : 'bg-muted'}`}>
               <Wind className={`h-6 w-6 ${showWind ? 'text-sky-500' : 'text-muted-foreground'}`} />
             </div>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Overlays global wind patterns and speed on the map.
+              {t('map.weatherWindDesc')}
             </p>
           </div>
         </div>
         <div className="flex border-t border-border">
-          <button onClick={() => onToggleWind(true)} className={`flex-1 py-1.5 text-xs font-semibold ${showWind ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}>On</button>
-          <button onClick={() => onToggleWind(false)} className={`flex-1 py-1.5 text-xs font-semibold border-l border-border ${!showWind ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}>Off</button>
+          <button onClick={() => onToggleWind(true)} className={`flex-1 py-1.5 text-xs font-semibold ${showWind ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}>{t('common.on')}</button>
+          <button onClick={() => onToggleWind(false)} className={`flex-1 py-1.5 text-xs font-semibold border-l border-border ${!showWind ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}>{t('common.off')}</button>
         </div>
       </div>
 

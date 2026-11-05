@@ -7,6 +7,7 @@ import {
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useFlightLog } from '@/lib/flight-log-context'
+import { useLocale } from '@/lib/locale-context'
 import { toast } from 'sonner'
 import { getAirport } from '@/lib/airports'
 import tzlookup from 'tz-lookup'
@@ -115,7 +116,7 @@ function toMs(ts: number | null | undefined) {
   return ts < 100000000000 ? ts * 1000 : ts
 }
 
-function landingBadge(fpm: number | null): { pill: string; text: string; label: string } {
+function landingBadge(fpm: number | null, t: any): { pill: string; text: string; label: string } {
   if (fpm == null) {
     return {
       pill: 'bg-muted text-muted-foreground border-border',
@@ -128,27 +129,27 @@ function landingBadge(fpm: number | null): { pill: string; text: string; label: 
     return {
       pill: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
       text: 'text-emerald-500',
-      label: 'Smooth',
+      label: t('debrief.smooth'),
     }
   }
   if (abs < 400) {
     return {
       pill: 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/20',
       text: 'text-yellow-500',
-      label: 'Firm',
+      label: t('debrief.firm'),
     }
   }
   if (abs < 700) {
     return {
       pill: 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20',
       text: 'text-orange-500',
-      label: 'Hard',
+      label: t('debrief.hard'),
     }
   }
   return {
     pill: 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20',
     text: 'text-red-500',
-    label: 'Very Hard',
+    label: t('debrief.veryHard'),
   }
 }
 
@@ -163,6 +164,7 @@ type SortKey = 'date' | 'duration' | 'distance' | 'landing'
 
 export function LogbookPage() {
   const navigate = useNavigate()
+  const { t } = useLocale()
   const { flights, deleteFlight, clearAll } = useFlightLog()
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState<SortKey>('date')
@@ -225,10 +227,10 @@ export function LogbookPage() {
     if (!confirm) return
     if (confirm.type === 'single') {
       deleteFlight(confirm.id)
-      toast.success('Flight deleted')
+      toast.success(t('logbook.flightDeleted'))
     } else {
       clearAll()
-      toast.success('Flight history cleared')
+      toast.success(t('logbook.historyCleared'))
     }
     setConfirm(null)
   }
@@ -266,7 +268,7 @@ export function LogbookPage() {
     a.download = `aervox-logbook-${new Date().toISOString().slice(0, 10)}.csv`
     a.click()
     URL.revokeObjectURL(url)
-    toast.success('Flight log exported')
+    toast.success(t('logbook.exportSuccess'))
   }
 
   return (
@@ -275,19 +277,19 @@ export function LogbookPage() {
       <div className="flex items-center justify-between gap-3 shrink-0 flex-wrap">
         <div>
           <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <BookOpen className="h-6 w-6 text-primary" /> Logbook
+            <BookOpen className="h-6 w-6 text-primary" /> {t('logbook.title')}
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Every flight you've completed, stored locally.
+            {t('logbook.desc')}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={exportCsv} disabled={flights.length === 0}>
-            <Download className="h-4 w-4 mr-2" /> Export CSV
+            <Download className="h-4 w-4 mr-2" /> {t('logbook.exportCsv')}
           </Button>
           {flights.length > 0 && (
             <Button variant="destructive" onClick={() => setConfirm({ type: 'all' })}>
-              <Trash2 className="h-4 w-4 mr-2" /> Clear
+              <Trash2 className="h-4 w-4 mr-2" /> {t('common.clear')}
             </Button>
           )}
         </div>
@@ -297,31 +299,31 @@ export function LogbookPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">Flights</span>
+              <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">{t('logbook.statsFlights')}</span>
               <Plane className="h-4 w-4 text-primary" />
             </div>
             <div className="text-2xl font-bold">{stats.totalFlights}</div>
-            <div className="text-[11px] text-muted-foreground mt-0.5">completed</div>
+            <div className="text-[11px] text-muted-foreground mt-0.5">{t('logbook.statsCompleted')}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">Total Time</span>
+              <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">{t('logbook.statsTime')}</span>
               <Clock className="h-4 w-4 text-primary" />
             </div>
             <div className="text-2xl font-bold">{stats.totalHours}h {stats.totalMinutes}m</div>
-            <div className="text-[11px] text-muted-foreground mt-0.5">block time</div>
+            <div className="text-[11px] text-muted-foreground mt-0.5">{t('logbook.statsBlockTime')}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">Distance</span>
+              <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">{t('logbook.statsDistance')}</span>
               <TrendingUp className="h-4 w-4 text-primary" />
             </div>
             <div className="text-2xl font-bold">{stats.totalDistance.toLocaleString()} nm</div>
-            <div className="text-[11px] text-muted-foreground mt-0.5">{stats.uniqueAirports} airports</div>
+            <div className="text-[11px] text-muted-foreground mt-0.5">{stats.uniqueAirports} {t('logbook.statsAirports')}</div>
           </CardContent>
         </Card>
 
@@ -329,7 +331,7 @@ export function LogbookPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-1">
-                <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">Avg Landing</span>
+                <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">{t('logbook.statsAvgLanding')}</span>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -338,37 +340,37 @@ export function LogbookPage() {
                     <TooltipContent side="top" className="w-64 p-3 bg-background text-foreground border-border shadow-md">
                       <div className="space-y-3">
                         <div>
-                          <p className="font-semibold text-sm mb-1">Landing Rating</p>
+                          <p className="font-semibold text-sm mb-1">{t('debrief.landingRating')}</p>
                           <p className="text-[11px] text-muted-foreground leading-relaxed">
-                            Based on your vertical speed at touchdown, measured in feet per minute (fpm).
+                            {t('debrief.landingInfo')}
                           </p>
                         </div>
                         <div className="space-y-2">
                           <div className="flex items-center justify-between text-xs">
                             <div className="flex items-center gap-2">
                               <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                              <span className="font-medium">Smooth</span>
+                              <span className="font-medium">{t('debrief.smooth')}</span>
                             </div>
                             <span className="font-mono text-[10px] text-muted-foreground">&lt; 200</span>
                           </div>
                           <div className="flex items-center justify-between text-xs">
                             <div className="flex items-center gap-2">
                               <span className="w-2 h-2 rounded-full bg-yellow-500" />
-                              <span className="font-medium">Firm</span>
+                              <span className="font-medium">{t('debrief.firm')}</span>
                             </div>
                             <span className="font-mono text-[10px] text-muted-foreground">200 – 400</span>
                           </div>
                           <div className="flex items-center justify-between text-xs">
                             <div className="flex items-center gap-2">
                               <span className="w-2 h-2 rounded-full bg-orange-500" />
-                              <span className="font-medium">Hard</span>
+                              <span className="font-medium">{t('debrief.hard')}</span>
                             </div>
                             <span className="font-mono text-[10px] text-muted-foreground">400 – 700</span>
                           </div>
                           <div className="flex items-center justify-between text-xs">
                             <div className="flex items-center gap-2">
                               <span className="w-2 h-2 rounded-full bg-red-500" />
-                              <span className="font-medium">Very Hard</span>
+                              <span className="font-medium">{t('debrief.veryHard')}</span>
                             </div>
                             <span className="font-mono text-[10px] text-muted-foreground">&gt; 700</span>
                           </div>
@@ -380,13 +382,13 @@ export function LogbookPage() {
               </div>
               <Award className="h-4 w-4 text-primary" />
             </div>
-            <div className={`text-2xl font-bold ${landingBadge(stats.avgLanding).text}`}>
+            <div className={`text-2xl font-bold ${landingBadge(stats.avgLanding, t).text}`}>
               {stats.avgLanding} <span className="text-sm font-normal text-foreground">fpm</span>
             </div>
             <div className="text-[10px] text-muted-foreground mt-1 flex gap-2">
-              <span>Best: <span className={landingBadge(stats.bestLanding).text}>{stats.bestLanding}</span></span>
+              <span>{t('logbook.best')} <span className={landingBadge(stats.bestLanding, t).text}>{stats.bestLanding}</span></span>
               <span>·</span>
-              <span>Worst: <span className={landingBadge(stats.worstLanding).text}>{stats.worstLanding}</span></span>
+              <span>{t('logbook.worst')} <span className={landingBadge(stats.worstLanding, t).text}>{stats.worstLanding}</span></span>
             </div>
           </CardContent>
         </Card>
@@ -397,7 +399,7 @@ export function LogbookPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Search flight number, aircraft, airport..."
+            placeholder={t('logbook.searchPlaceholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-9 pr-3 py-2 rounded-md bg-background border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
@@ -413,7 +415,7 @@ export function LogbookPage() {
                 sortBy === k ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'
               }`}
             >
-              {k}
+              {t(`logbook.sort${k.charAt(0).toUpperCase() + k.slice(1)}`)}
             </button>
           ))}
         </div>
@@ -425,8 +427,8 @@ export function LogbookPage() {
             <BookOpen className="h-12 w-12 text-muted-foreground/30 mb-4" />
             <p className="text-sm text-muted-foreground">
               {flights.length === 0
-                ? 'No flights recorded yet. Complete a flight in MSFS and it will appear here.'
-                : 'No flights match your search.'}
+                ? t('logbook.noFlights')
+                : t('logbook.noMatches')}
             </p>
           </CardContent>
         ) : (
@@ -434,14 +436,14 @@ export function LogbookPage() {
             <table className="w-full text-sm">
               <thead className="bg-muted/50 border-b border-border sticky top-0 z-10">
                 <tr>
-                  <th className="text-center px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground" title="The flight number you entered in your profile for this flight.">Flight Number</th>
-                  <th className="text-center px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground" title="The aircraft you flew for this flight.">Aircraft</th>
-                  <th className="text-center px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground" title="The departure and arrival airports (ICAO).">Route</th>
-                  <th className="text-center px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground" title="The local time and date you took off.">Takeoff Time</th>
-                  <th className="text-center px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground" title="The total block time from gate to gate.">Block</th>
-                  <th className="text-center px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground" title="The total distance flown in nautical miles.">Distance</th>
-                  <th className="text-center px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground" title="The landing rate recorded at touchdown in feet per minute (fpm).">Landing Rating</th>
-                  <th className="text-center px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground" title="The final status of the flight and arrival time.">Status</th>
+                  <th className="text-center px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground" title="The flight number you entered in your profile for this flight.">{t('logbook.colFlight')}</th>
+                  <th className="text-center px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground" title="The aircraft you flew for this flight.">{t('logbook.colAircraft')}</th>
+                  <th className="text-center px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground" title="The departure and arrival airports (ICAO).">{t('logbook.colRoute')}</th>
+                  <th className="text-center px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground" title="The local time and date you took off.">{t('logbook.colTakeoff')}</th>
+                  <th className="text-center px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground" title="The total block time from gate to gate.">{t('logbook.colBlock')}</th>
+                  <th className="text-center px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground" title="The total distance flown in nautical miles.">{t('logbook.colDistance')}</th>
+                  <th className="text-center px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground" title="The landing rate recorded at touchdown in feet per minute (fpm).">{t('logbook.colLanding')}</th>
+                  <th className="text-center px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground" title="The final status of the flight and arrival time.">{t('logbook.colStatus')}</th>
                   <th className="text-center px-4 py-3 w-10"></th>
                 </tr>
               </thead>
@@ -454,7 +456,7 @@ export function LogbookPage() {
 
                   const depLocal = formatLocalDateTime(f.startTime, depTz)
                   const arrLocal = formatLocalDateTime(f.endTime, arrTz)
-                  const badge = landingBadge(f.landingRateFpm)
+                  const badge = landingBadge(f.landingRateFpm, t)
 
                   return (
                     <tr
@@ -501,7 +503,7 @@ export function LogbookPage() {
                           </div>
                         ) : (
                           <span className="text-xs text-muted-foreground flex items-center justify-center gap-1">
-                            <MapPin className="h-3 w-3" /> Unknown
+                            <MapPin className="h-3 w-3" /> {t('common.unknown')}
                           </span>
                         )}
                       </td>
@@ -522,7 +524,7 @@ export function LogbookPage() {
                         <div className="inline-flex flex-col items-center gap-0.5">
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-500/10 text-green-500 border border-green-500/20 whitespace-nowrap">
                             <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
-                            Landed {arrLocal.time} {arrLocal.abbr}
+                            {t('logbook.statusLanded')} {arrLocal.time} {arrLocal.abbr}
                           </span>
                           <span className="text-[9px] text-muted-foreground">{arrLocal.date}</span>
                         </div>
@@ -534,7 +536,7 @@ export function LogbookPage() {
                             setConfirm({ type: 'single', id: f.id })
                           }}
                           className="text-muted-foreground hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
-                          title="Delete this flight"
+                          title={t('logbook.deleteFlight')}
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -555,18 +557,18 @@ export function LogbookPage() {
               <AlertTriangle className="h-6 w-6 text-destructive" />
             </div>
             <DialogTitle className="text-center text-destructive">
-              {confirm?.type === 'all' ? 'Clear all flights?' : 'Delete flight?'}
+              {confirm?.type === 'all' ? t('logbook.clearTitle') : t('logbook.deleteTitle')}
             </DialogTitle>
             <DialogDescription className="text-center">
               {confirm?.type === 'all'
-                ? 'This will permanently delete your entire flight history. This cannot be undone.'
-                : 'This flight report will be permanently deleted. This cannot be undone.'}
+                ? t('logbook.clearDesc')
+                : t('logbook.deleteDesc')}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirm(null)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setConfirm(null)}>{t('common.cancel')}</Button>
             <Button variant="destructive" onClick={handleConfirm}>
-              {confirm?.type === 'all' ? 'Clear' : 'Delete'}
+              {confirm?.type === 'all' ? t('common.clear') : t('common.delete')}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -9,6 +9,7 @@ import {
   cleanAircraftName,
   type RowPilot
 } from './airport-utils'
+import { useLocale } from '@/lib/locale-context'
 import tzlookup from 'tz-lookup'
 
 function parseSimbriefTime(raw?: string | null): Date | null {
@@ -69,13 +70,14 @@ export function LiveFlightRow({
   type: 'departure' | 'arrival' | 'ground'
   onShowOnMap?: (pilot: RowPilot) => void
 }) {
+  const { t } = useLocale()
   const [expanded, setExpanded] = useState(false)
 
   const airlineCode = airlineFromCallsign(pilot.callsign)
   const distance = distanceNm(pilot.lat, pilot.lon, airport.lat, airport.lon)
 
   const routeIcao = type === 'departure' ? pilot.arrival : pilot.departure
-  const routeCity = routeIcao ? (AIRPORTS.find(a => a.icao === routeIcao)?.name.split(' ')[0] || routeIcao) : 'Unknown'
+  const routeCity = routeIcao ? (AIRPORTS.find(a => a.icao === routeIcao)?.name.split(' ')[0] || routeIcao) : t('common.unknown')
 
   const cleanAircraft = cleanAircraftName(pilot.aircraft)
 
@@ -89,7 +91,7 @@ export function LiveFlightRow({
     const fakeActual = schedDate ? new Date(schedDate.getTime() + 3600000) : null
     timeBottom = formatLocalAirportTime(fakeActual, airport)
   } else if (type === 'arrival' && !pilot.isSelf) {
-    timeTop = 'Est.'
+    timeTop = t('airport.est')
     timeBottom = formatLiveEta(distance, pilot.groundspeed, airport)
   } else {
     timeTop = '--:--'
@@ -98,13 +100,13 @@ export function LiveFlightRow({
 
   let badge = null
   if (pilot.isSelf) {
-    badge = <span className="bg-blue-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm">YOU</span>
+    badge = <span className="bg-blue-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm">{t('airport.you')}</span>
   } else if (type === 'ground' || pilot.altitude < 100) {
-    badge = <span className="bg-muted text-muted-foreground border border-border text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm">GROUND</span>
+    badge = <span className="bg-muted text-muted-foreground border border-border text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm">{t('airport.statusGround')}</span>
   } else if (pilot.departureStatus === 'Scheduled' || pilot.arrivalStatus === 'Scheduled') {
-    badge = <span className="bg-muted text-muted-foreground border border-border text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm">SCHED</span>
+    badge = <span className="bg-muted text-muted-foreground border border-border text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm">{t('airport.statusScheduled')}</span>
   } else {
-    badge = <span className="bg-yellow-400 text-black text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm flex items-center gap-1"><span className="w-1.5 h-1.5 bg-black rounded-full animate-pulse"/> LIVE</span>
+    badge = <span className="bg-yellow-400 text-black text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm flex items-center gap-1"><span className="w-1.5 h-1.5 bg-black rounded-full animate-pulse"/> {t('airport.statusLive')}</span>
   }
 
   return (
@@ -151,7 +153,7 @@ export function LiveFlightRow({
                 e.stopPropagation()
                 onShowOnMap(pilot)
               }}
-              title="Show on Map"
+              title={t('map.btnShowOnMap')}
               className="p-1 rounded text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
             >
               <Crosshair className="h-3.5 w-3.5" />
@@ -165,21 +167,21 @@ export function LiveFlightRow({
         <div className="px-3 pb-3 pt-1 bg-muted/10 border-t border-border/50 animate-in slide-in-from-top-2 duration-200">
           <div className="grid grid-cols-2 gap-2 text-xs">
             <div className="bg-background rounded border border-border p-2 flex flex-col shadow-sm">
-              <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider">Altitude</span>
+              <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider">{t('airport.expandAltitude')}</span>
               <span className="font-mono text-sm font-semibold">{Math.round(pilot.altitude).toLocaleString()} ft</span>
             </div>
             <div className="bg-background rounded border border-border p-2 flex flex-col shadow-sm">
-              <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider">Ground Speed</span>
+              <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider">{t('airport.expandGroundSpeed')}</span>
               <span className="font-mono text-sm font-semibold">{Math.round(pilot.groundspeed)} kts</span>
             </div>
             <div className="bg-background rounded border border-border p-2 flex flex-col shadow-sm">
-              <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider">Route</span>
+              <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider">{t('airport.expandRoute')}</span>
               <span className="font-mono text-sm font-semibold truncate">
                 {pilot.departure || '???'} → {pilot.arrival || '???'}
               </span>
             </div>
             <div className="bg-background rounded border border-border p-2 flex flex-col shadow-sm">
-              <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider">Position</span>
+              <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider">{t('airport.expandPosition')}</span>
               <span className="font-mono text-xs text-muted-foreground truncate">{pilot.lat.toFixed(4)}, {pilot.lon.toFixed(4)}</span>
             </div>
           </div>

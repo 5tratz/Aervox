@@ -1,6 +1,7 @@
 import { Map as MapIcon, Sun } from 'lucide-react'
 import { Slider } from '@/components/ui/slider'
 import { MAP_STYLES } from '../map-constants'
+import { useLocale } from '@/lib/locale-context'
 
 export interface MapSettings {
   activeStyle: string
@@ -15,12 +16,14 @@ export function SettingsPanel({
   settings: MapSettings
   onChange: <K extends keyof MapSettings>(key: K, value: MapSettings[K]) => void
 }) {
+  const { t } = useLocale()
+
   return (
     <div className="p-4 space-y-6 text-sm text-foreground">
 
       {/* Map Style */}
       <div className="space-y-3">
-        <h3 className="font-semibold uppercase text-xs tracking-wider">Map Style</h3>
+        <h3 className="font-semibold uppercase text-xs tracking-wider">{t('map.settingsMapStyle')}</h3>
         <div className="grid grid-cols-3 gap-2">
           {MAP_STYLES.map((style) => {
             const isActive = settings.activeStyle === style.id
@@ -79,7 +82,7 @@ export function SettingsPanel({
 
       {/* Brightness */}
       <div className="space-y-3">
-        <h3 className="font-semibold uppercase text-xs tracking-wider">Brightness</h3>
+        <h3 className="font-semibold uppercase text-xs tracking-wider">{t('map.settingsBrightness')}</h3>
         <div className="flex items-center gap-3">
           <Sun className="h-4 w-4" />
           <Slider value={[settings.brightness]} onValueChange={(v) => onChange('brightness', v[0])} min={20} max={150} step={1} className="flex-1" />
@@ -91,17 +94,17 @@ export function SettingsPanel({
 
       {/* Airport Pins */}
       <div className="space-y-3">
-        <h3 className="font-semibold uppercase text-xs tracking-wider">Airport Pins</h3>
-        <p className="text-xs text-muted-foreground">View the location of airports on the map. Pins appear when zoomed in.</p>
+        <h3 className="font-semibold uppercase text-xs tracking-wider">{t('map.settingsAirportPins')}</h3>
+        <p className="text-xs text-muted-foreground">{t('map.settingsAirportPinsDesc')}</p>
         <div className="flex rounded-md overflow-hidden border border-border">
           <button
             onClick={() => onChange('airportPinsEnabled', true)}
             className={`flex-1 py-1.5 text-xs font-semibold ${settings.airportPinsEnabled ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
-          >On</button>
+          >{t('common.on')}</button>
           <button
             onClick={() => onChange('airportPinsEnabled', false)}
             className={`flex-1 py-1.5 text-xs font-semibold border-l border-border ${!settings.airportPinsEnabled ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
-          >Off</button>
+          >{t('common.off')}</button>
         </div>
       </div>
 
@@ -109,17 +112,17 @@ export function SettingsPanel({
 
       {/* Airport Labels */}
       <div className="space-y-3">
-        <h3 className="font-semibold uppercase text-xs tracking-wider">Airport Labels</h3>
-        <p className="text-xs text-muted-foreground">IATA and ICAO code labels appear next to pins when zoomed in further.</p>
+        <h3 className="font-semibold uppercase text-xs tracking-wider">{t('map.settingsAirportLabels')}</h3>
+        <p className="text-xs text-muted-foreground">{t('map.settingsAirportLabelsDesc')}</p>
         <div className="flex rounded-md overflow-hidden border border-border">
           <button
             onClick={() => onChange('airportLabelsEnabled', true)}
             className={`flex-1 py-1.5 text-xs font-semibold ${settings.airportLabelsEnabled ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
-          >On</button>
+          >{t('common.on')}</button>
           <button
             onClick={() => onChange('airportLabelsEnabled', false)}
             className={`flex-1 py-1.5 text-xs font-semibold border-l border-border ${!settings.airportLabelsEnabled ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
-          >Off</button>
+          >{t('common.off')}</button>
         </div>
       </div>
 

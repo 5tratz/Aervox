@@ -1,15 +1,7 @@
 import type { ReactNode } from 'react'
 import { X } from 'lucide-react'
 import type { SidebarTab } from './bottom-bar'
-
-const TITLES: Record<Exclude<SidebarTab, null>, string> = {
-  settings: 'Settings',
-  weather: 'Weather',
-  flights: 'Flights',
-  airport: 'Airport Info',
-  vatsim: 'Flight Info',
-  own: 'My Aircraft',
-}
+import { useLocale } from '@/lib/locale-context'
 
 export function SidePanel({
   activeTab,
@@ -20,6 +12,17 @@ export function SidePanel({
   onClose: () => void
   children: ReactNode
 }) {
+  const { t } = useLocale()
+
+  const TITLES: Record<Exclude<SidebarTab, null>, string> = {
+    settings: t('map.panelSettings'),
+    weather: t('map.panelWeather'),
+    flights: t('map.panelFlights'),
+    airport: t('map.panelAirport'),
+    vatsim: t('map.panelVatsim'),
+    own: t('map.panelOwn'),
+  }
+
   return (
     <div
       className={`absolute top-0 left-0 bottom-0 z-[999] w-96 bg-background border-r border-border shadow-2xl transition-transform duration-300 ease-in-out flex flex-col ${

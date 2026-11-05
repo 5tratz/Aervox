@@ -6,6 +6,7 @@ import { getAircraftImage } from '@/lib/aircraft-images'
 import type { SimbriefOFP } from '@/lib/simbrief'
 import { useMemo } from 'react'
 import { cleanAircraftName } from './airport-utils'
+import { useLocale } from '@/lib/locale-context'
 
 function distanceNm(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 3440.065
@@ -118,6 +119,7 @@ export function FlightInfoPanel({
   onFollow?: () => void
   isFollowing?: boolean
 }) {
+  const { t } = useLocale()
   const isOwn = source === 'SIM'
   const depIcao = ofp?.origin?.icao_code || pilot.departure
   const arrIcao = ofp?.destination?.icao_code || pilot.arrival
@@ -138,7 +140,6 @@ export function FlightInfoPanel({
 
   const altStr = pilot.altitude.toLocaleString()
   
-  // Clean the aircraft name for display and image lookup
   const displayAircraft = cleanAircraftName(pilot.aircraft)
   const imgSrc = getAircraftImage(displayAircraft)
 
@@ -193,10 +194,10 @@ export function FlightInfoPanel({
 
   const depFullName = dep
     ? `${dep.name} (${dep.icao}${dep.iata ? ' / ' + dep.iata : ''})`
-    : depIcao || 'Unknown'
+    : depIcao || t('common.unknown')
   const arrFullName = arr
     ? `${arr.name} (${arr.icao}${arr.iata ? ' / ' + arr.iata : ''})`
-    : arrIcao || 'Unknown'
+    : arrIcao || t('common.unknown')
 
   return (
     <div className="flex flex-col h-full bg-[#f8f9fa] dark:bg-zinc-950 text-foreground">
@@ -208,7 +209,7 @@ export function FlightInfoPanel({
             {onFollow && (
               <button
                 onClick={onFollow}
-                title={isFollowing ? 'Stop following' : 'Follow this aircraft on the map'}
+                title={isFollowing ? t('map.tooltipStopFollow') : t('map.tooltipFollow')}
                 className={`flex items-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors ${
                   isFollowing
                     ? 'bg-blue-500/20 text-blue-300 ring-1 ring-blue-400/40'
@@ -216,7 +217,7 @@ export function FlightInfoPanel({
                 }`}
               >
                 <Crosshair className={`h-3 w-3 ${isFollowing ? 'animate-pulse' : ''}`} />
-                {isFollowing ? 'Following' : 'Follow'}
+                {isFollowing ? t('map.btnFollowing') : t('map.btnFollow')}
               </button>
             )}
             <span className="text-xs bg-zinc-700/50 px-2 py-1 rounded text-gray-300 flex items-center gap-1">
@@ -225,7 +226,7 @@ export function FlightInfoPanel({
           </div>
         </div>
 		<div className="text-sm text-gray-300 font-mono text-xs opacity-80 flex items-center gap-2">
-		  <span>{displayAircraft || 'Unknown Aircraft'}</span>
+		  <span>{displayAircraft || t('flightinfo.unknownAircraft')}</span>
 		  {isOwn && registration && <span className="text-zinc-400">· {registration}</span>}
 		  {flightNumber && pilot.callsign !== flightNumber && (
 			<span className="ml-auto bg-zinc-700/50 px-2 py-0.5 rounded text-[10px] font-bold tracking-wider">
@@ -255,7 +256,7 @@ export function FlightInfoPanel({
               {depIcao || '???'}
             </div>
             <div className="text-[11px] font-semibold text-foreground mt-1 truncate px-1">
-              {dep?.name ? dep.name.split(' ')[0] : 'Departure'}
+              {dep?.name ? dep.name.split(' ')[0] : t('flightinfo.departure')}
             </div>
             <div className="text-[9px] text-muted-foreground uppercase">
               {dep ? getTimezone(dep.lon) : '---'}
@@ -277,7 +278,7 @@ export function FlightInfoPanel({
               {arrIcao || '???'}
             </div>
             <div className="text-[11px] font-semibold text-foreground mt-1 truncate px-1">
-              {arr?.name ? arr.name.split(' ')[0] : 'Arrival'}
+              {arr?.name ? arr.name.split(' ')[0] : t('flightinfo.arrival')}
             </div>
             <div className="text-[9px] text-muted-foreground uppercase">
               {arr ? getTimezone(arr.lon) : '---'}
@@ -287,13 +288,13 @@ export function FlightInfoPanel({
 
         {isOwn && altIcao && (
           <div className="px-4 pb-2 text-[10px] text-muted-foreground">
-            ALT: <span className="font-mono font-semibold text-foreground">{altIcao}</span>
+            {t('flightinfo.alt')} <span className="font-mono font-semibold text-foreground">{altIcao}</span>
           </div>
         )}
 
         {isOwn && ofp?.general?.route && (
           <div className="px-3 py-2 border-t border-border bg-muted/10 text-[10px] font-mono text-muted-foreground truncate" title={ofp.general.route}>
-            Route: {ofp.general.route}
+            {t('flightinfo.route')} {ofp.general.route}
           </div>
         )}
 
@@ -302,14 +303,14 @@ export function FlightInfoPanel({
             {isOwn && (
               <div className="flex justify-between px-3 py-1.5 border-b border-border/50 text-xs">
                 <span className="text-muted-foreground">
-                  SCHEDULED {depDay && <span className="text-[9px]">{depDay}</span>}
+                  {t('flightinfo.scheduled')} {depDay && <span className="text-[9px]">{depDay}</span>}
                 </span>
                 <span className="font-semibold font-mono">{depTimeLocal}</span>
               </div>
             )}
             <div className="flex justify-between px-3 py-1.5 text-xs">
               <span className="text-muted-foreground">
-                ACTUAL {!isOwn && <span className="text-[9px] text-muted-foreground">(Calc)</span>}
+                {t('flightinfo.actual')} {!isOwn && <span className="text-[9px] text-muted-foreground">{t('flightinfo.calc')}</span>}
               </span>
               <span className="font-semibold font-mono">{displayDepActual}</span>
             </div>
@@ -319,14 +320,14 @@ export function FlightInfoPanel({
             {isOwn && (
               <div className="flex justify-between px-3 py-1.5 border-b border-border/50 text-xs">
                 <span className="text-muted-foreground">
-                  SCHEDULED {arrDay && <span className="text-[9px]">{arrDay}</span>}
+                  {t('flightinfo.scheduled')} {arrDay && <span className="text-[9px]">{arrDay}</span>}
                 </span>
                 <span className="font-semibold font-mono">{arrTimeLocal}</span>
               </div>
             )}
             <div className="flex justify-between px-3 py-1.5 text-xs">
               <span className="text-muted-foreground">
-                ESTIMATED {!isOwn && <span className="text-[9px] text-muted-foreground">(Calc)</span>}
+                {t('flightinfo.estimated')} {!isOwn && <span className="text-[9px] text-muted-foreground">{t('flightinfo.calc')}</span>}
               </span>
               <span className="font-semibold font-mono flex items-center gap-1">
                 <span className="h-1.5 w-1.5 rounded-full bg-yellow-400" />
@@ -337,7 +338,7 @@ export function FlightInfoPanel({
         </div>
 
         <div className="bg-muted/30 p-3 border-t border-border flex items-center justify-between text-[11px] text-muted-foreground">
-          <span>ENROUTE: <span className="font-mono text-foreground">{displayEnroute}</span></span>
+          <span>{t('flightinfo.enroute')} <span className="font-mono text-foreground">{displayEnroute}</span></span>
           <span>{Math.round(distanceToDest)} nm to {arrIcao || '—'}</span>
         </div>
       </div>
@@ -345,11 +346,11 @@ export function FlightInfoPanel({
       <div className="p-4 space-y-4 flex-1 overflow-y-auto">
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-white dark:bg-zinc-900 rounded-lg border border-border p-3 flex flex-col items-center justify-center shadow-sm">
-            <span className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">Altitude</span>
+            <span className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">{t('airport.expandAltitude')}</span>
             <span className="font-mono text-xl font-light">{altStr} <span className="text-sm">ft</span></span>
           </div>
           <div className="bg-white dark:bg-zinc-900 rounded-lg border border-border p-3 flex flex-col items-center justify-center shadow-sm">
-            <span className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">Ground Speed</span>
+            <span className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">{t('airport.expandGroundSpeed')}</span>
             <span className="font-mono text-xl font-light">{Math.round(pilot.groundspeed)} <span className="text-sm">kts</span></span>
           </div>
         </div>
@@ -357,38 +358,38 @@ export function FlightInfoPanel({
         {isOwn ? (
           <div className="bg-white dark:bg-zinc-900 rounded-lg border border-border p-4 shadow-sm space-y-2">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Cruise Altitude</span>
+              <span className="text-muted-foreground">{t('flightinfo.cruiseAlt')}</span>
               <span className="font-mono text-xs font-semibold">{cruiseAlt}</span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Cruise TAS</span>
+              <span className="text-muted-foreground">{t('flightinfo.cruiseTas')}</span>
               <span className="font-mono text-xs font-semibold">{cruiseTas}</span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Ramp Fuel</span>
+              <span className="text-muted-foreground">{t('flightinfo.rampFuel')}</span>
               <span className="font-mono text-xs font-semibold">{rampFuel}</span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Payload</span>
+              <span className="text-muted-foreground">{t('flightinfo.payload')}</span>
               <span className="font-mono text-xs font-semibold">{payload}</span>
             </div>
             <div className="flex items-center justify-between text-sm border-t border-border/50 pt-2">
-              <span className="text-muted-foreground">Flight Duration</span>
+              <span className="text-muted-foreground">{t('flightinfo.flightDuration')}</span>
               <span className="font-mono text-xs font-semibold">{enroute}</span>
             </div>
           </div>
         ) : (
           <div className="bg-white dark:bg-zinc-900 rounded-lg border border-border p-4 shadow-sm space-y-2">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Heading</span>
+              <span className="text-muted-foreground">{t('flightinfo.heading')}</span>
               <span className="font-mono text-xs font-semibold">{Math.round(pilot.heading)}°</span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Remaining</span>
+              <span className="text-muted-foreground">{t('flightinfo.remaining')}</span>
               <span className="font-mono text-xs font-semibold">{Math.round(distanceToDest)} nm</span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Position</span>
+              <span className="text-muted-foreground">{t('flightinfo.position')}</span>
               <span className="font-mono text-xs text-muted-foreground">{pilot.lat.toFixed(4)}, {pilot.lon.toFixed(4)}</span>
             </div>
           </div>
@@ -397,11 +398,11 @@ export function FlightInfoPanel({
         {isOwn && (
           <div className="bg-white dark:bg-zinc-900 rounded-lg border border-border p-4 shadow-sm space-y-3">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Heading</span>
+              <span className="text-muted-foreground">{t('flightinfo.heading')}</span>
               <span className="font-mono font-semibold">{Math.round(pilot.heading)}°</span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Position</span>
+              <span className="text-muted-foreground">{t('flightinfo.position')}</span>
               <span className="font-mono text-xs text-muted-foreground">{pilot.lat.toFixed(4)}, {pilot.lon.toFixed(4)}</span>
             </div>
           </div>

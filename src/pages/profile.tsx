@@ -16,6 +16,7 @@ import { usePilot } from '@/lib/pilot-context'
 import { useSimbrief } from '@/lib/simbrief-context'
 import { useFlightLog } from '@/lib/flight-log-context'
 import { readAvatarAsDataUrl } from '@/lib/storage'
+import { useLocale } from '@/lib/locale-context'
 import { toast } from 'sonner'
 import { useNavigate } from 'react-router-dom'
 
@@ -35,6 +36,7 @@ function formatDate(ts: number | null): string {
 
 export function ProfilePage() {
   const navigate = useNavigate()
+  const { t } = useLocale()
   const { pilot, ready, update } = usePilot()
   const { ofp, refresh: refreshSimbrief } = useSimbrief()
   const { flights } = useFlightLog()
@@ -85,7 +87,7 @@ export function ProfilePage() {
       })
 
       setSaved(true)
-      toast.success('Profile saved')
+      toast.success(t('profile.profileSaved'))
       setTimeout(() => setSaved(false), 2000)
 
       if (newSimbriefId !== previousSimbriefId) {
@@ -95,7 +97,7 @@ export function ProfilePage() {
       }
     } catch (err) {
       console.error('Disk save failed:', err)
-      toast.error('Failed to save profile to disk')
+      toast.error(t('profile.saveFailed'))
     } finally {
       setSaving(false)
     }
@@ -125,10 +127,10 @@ export function ProfilePage() {
 
       const url = await readAvatarAsDataUrl(filename)
       setAvatarUrl(url)
-      toast.success('Avatar updated')
+      toast.success(t('profile.avatarUpdated'))
     } catch (err) {
       console.error('Avatar upload failed:', err)
-      toast.error('Failed to upload avatar')
+      toast.error(t('profile.uploadFailed'))
     } finally {
       setAvatarBusy(false)
     }
@@ -139,9 +141,9 @@ export function ProfilePage() {
       setAvatarBusy(true)
       await update({ avatarFilename: null })
       setAvatarUrl(null)
-      toast.success('Avatar removed')
+      toast.success(t('profile.avatarRemoved'))
     } catch (err) {
-      toast.error('Failed to remove avatar')
+      toast.error(t('profile.removeFailed'))
     } finally {
       setAvatarBusy(false)
     }
@@ -159,7 +161,7 @@ export function ProfilePage() {
   if (!ready) {
     return (
       <div className="flex items-center justify-center h-64 text-muted-foreground text-sm">
-        Loading profile…
+        {t('common.loading')}
       </div>
     )
   }
@@ -213,7 +215,7 @@ export function ProfilePage() {
 
               <div className="flex-1 min-w-0">
                 <h1 className="text-3xl font-bold tracking-tight truncate">
-                  {displayName || 'Unnamed Pilot'}
+                  {displayName || t('profile.unnamedPilot')}
                 </h1>
                 <div className="flex items-center gap-2 mt-2 flex-wrap">
                   {callsign && (
@@ -234,11 +236,11 @@ export function ProfilePage() {
             <div className="flex flex-col sm:flex-row md:flex-col gap-3 md:gap-2 shrink-0 md:border-l md:pl-6 border-border/50">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <CalendarDays className="h-4 w-4 text-primary/70" />
-                <span>Joined <strong className="text-foreground font-medium">{formatDate(pilot.createdAt)}</strong></span>
+                <span>{t('profile.joined')} <strong className="text-foreground font-medium">{formatDate(pilot.createdAt)}</strong></span>
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Clock className="h-4 w-4 text-primary/70" />
-                <span>Last active <strong className="text-foreground font-medium">{formatDate(pilot.lastLoginAt)}</strong></span>
+                <span>{t('profile.lastActive')} <strong className="text-foreground font-medium">{formatDate(pilot.lastLoginAt)}</strong></span>
               </div>
             </div>
 
@@ -256,49 +258,49 @@ export function ProfilePage() {
           <Card className="flex-1 flex flex-col border-border/60 shadow-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
-                <User className="h-5 w-5 text-primary" /> Pilot Information
+                <User className="h-5 w-5 text-primary" /> {t('profile.pilotInfo')}
               </CardTitle>
               <CardDescription>
-                Your callsign and flight number are used across the app.
+                {t('profile.pilotInfoDesc')}
               </CardDescription>
             </CardHeader>
             <CardContent className="flex-1">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6">
                 <div className="space-y-2">
-                  <Label className="text-muted-foreground">Display Name</Label>
+                  <Label className="text-muted-foreground">{t('profile.displayName')}</Label>
                   <Input
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
-                    placeholder="e.g. Alex Pilot"
+                    placeholder={t('profile.displayNamePlaceholder')}
                     className="bg-muted/30"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-muted-foreground">Email</Label>
+                  <Label className="text-muted-foreground">{t('profile.email')}</Label>
                   <Input
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@example.com"
+                    placeholder={t('profile.emailPlaceholder')}
                     type="email"
                     className="bg-muted/30"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-muted-foreground">Callsign</Label>
+                  <Label className="text-muted-foreground">{t('profile.callsign')}</Label>
                   <Input
                     value={callsign}
                     onChange={(e) => setCallsign(e.target.value.toUpperCase())}
-                    placeholder="e.g. BAW892"
+                    placeholder={t('profile.callsignPlaceholder')}
                     className="font-mono uppercase bg-muted/30"
                     maxLength={12}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-muted-foreground">Flight Number</Label>
+                  <Label className="text-muted-foreground">{t('profile.flightNumber')}</Label>
                   <Input
                     value={flightNumber}
                     onChange={(e) => setFlightNumber(e.target.value.toUpperCase())}
-                    placeholder="e.g. BA123"
+                    placeholder={t('profile.flightNumberPlaceholder')}
                     className="font-mono uppercase bg-muted/30"
                     maxLength={12}
                   />
@@ -311,24 +313,24 @@ export function ProfilePage() {
           <Card className="flex flex-col border-border/60 shadow-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
-                <Plane className="h-5 w-5 text-primary" /> SimBrief Integration
+                <Plane className="h-5 w-5 text-primary" /> {t('profile.simbrief')}
               </CardTitle>
               <CardDescription>
-                Connect your SimBrief account to automatically pull in your latest flight plan.
+                {t('profile.simbriefDesc')}
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-6 pb-6">
               
               <div className="max-w-[250px] w-full space-y-2">
-                <Label className="text-muted-foreground">SimBrief Pilot ID</Label>
+                <Label className="text-muted-foreground">{t('profile.simbriefId')}</Label>
                 <Input
                   value={simbriefId}
                   onChange={(e) => setSimbriefId(e.target.value)}
-                  placeholder="e.g. 123456"
+                  placeholder={t('profile.simbriefIdPlaceholder')}
                   className="bg-muted/30 font-mono"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Find this in your SimBrief Account Settings or on the New Flight page.
+                  {t('profile.simbriefIdHint')}
                 </p>
               </div>
 
@@ -351,7 +353,7 @@ export function ProfilePage() {
 
                       {/* Aircraft */}
                       <div className="flex flex-col text-sm">
-                        <span className="font-semibold text-foreground">{ofp.aircraft?.name || 'Unknown Aircraft'}</span>
+                        <span className="font-semibold text-foreground">{ofp.aircraft?.name || t('common.unknown')}</span>
                         {ofp.aircraft?.reg && (
                           <span className="font-mono text-xs text-muted-foreground mt-0.5">{ofp.aircraft.reg}</span>
                         )}
@@ -363,21 +365,21 @@ export function ProfilePage() {
                       onClick={() => navigate('/flight-plan')}
                       className="w-full sm:w-auto shrink-0 shadow-sm"
                     >
-                      <ExternalLink className="h-4 w-4 mr-2" /> View full flight plan
+                      <ExternalLink className="h-4 w-4 mr-2" /> {t('profile.viewFullPlan')}
                     </Button>
                   </div>
                 ) : (
                   <div className="flex items-start gap-3 p-5 rounded-xl bg-muted/20 border border-border/50 text-sm text-muted-foreground">
                     <AlertCircle className="h-5 w-5 shrink-0 mt-0.5 text-muted-foreground/70" />
                     <div className="flex-1 leading-relaxed">
-                      No OFP loaded. Set your SimBrief ID above and click Save, or go to the{' '}
+                      {t('profile.noOfp')}{' '}
                       <button
                         onClick={() => navigate('/flight-plan')}
                         className="font-semibold text-primary hover:underline underline-offset-2"
                       >
-                        Flight Plan page
+                        {t('profile.noOfpLink')}
                       </button>{' '}
-                      to fetch one.
+                      {t('profile.noOfpEnd')}
                     </div>
                   </div>
                 )}
@@ -391,28 +393,28 @@ export function ProfilePage() {
         <Card className="xl:col-span-1 flex flex-col border-border/60 shadow-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
-              <Award className="h-5 w-5 text-primary" /> Flight Stats
+              <Award className="h-5 w-5 text-primary" /> {t('profile.flightStats')}
             </CardTitle>
           </CardHeader>
           <CardContent className="flex-1 flex flex-col justify-between">
             <div className="space-y-5 text-sm">
               <div className="flex items-center justify-between">
                 <span className="flex items-center gap-2.5 text-muted-foreground font-medium">
-                  <Plane className="h-4 w-4" /> Total Flights
+                  <Plane className="h-4 w-4" /> {t('profile.totalFlights')}
                 </span>
                 <span className="font-mono font-semibold text-base">{completedFlights.length}</span>
               </div>
               <Separator className="bg-border/60" />
               <div className="flex items-center justify-between">
                 <span className="flex items-center gap-2.5 text-muted-foreground font-medium">
-                  <MapPin className="h-4 w-4" /> Airports Visited
+                  <MapPin className="h-4 w-4" /> {t('profile.airportsVisited')}
                 </span>
                 <span className="font-mono font-semibold text-base">{uniqueAirports.size}</span>
               </div>
               <Separator className="bg-border/60" />
               <div className="flex items-center justify-between">
                 <span className="flex items-center gap-2.5 text-muted-foreground font-medium">
-                  <Clock className="h-4 w-4" /> Total Hours
+                  <Clock className="h-4 w-4" /> {t('profile.totalHours')}
                 </span>
                 <span className="font-mono font-semibold text-base">
                   {Math.floor(totalMins / 60)}h {totalMins % 60}m
@@ -421,7 +423,7 @@ export function ProfilePage() {
               <Separator className="bg-border/60" />
               <div className="flex items-center justify-between">
                 <span className="flex items-center gap-2.5 text-muted-foreground font-medium">
-                  <Award className="h-4 w-4" /> Total Distance
+                  <Award className="h-4 w-4" /> {t('profile.totalDistance')}
                 </span>
                 <span className="font-mono font-semibold text-base">{totalDistance.toLocaleString()} nm</span>
               </div>
@@ -430,8 +432,8 @@ export function ProfilePage() {
             <div className="pt-6 mt-auto text-xs text-muted-foreground border-t border-border/60 flex items-center gap-2">
               <Calendar className="h-3.5 w-3.5" />
               {completedFlights.length === 0
-                ? 'Complete a flight in MSFS to log your first entry.'
-                : `Last flight: ${completedFlights[0].departure || '???'} → ${completedFlights[0].arrival || '???'}`}
+                ? t('profile.completeFlightPrompt')
+                : `${t('profile.lastFlight')} ${completedFlights[0].departure || '???'} → ${completedFlights[0].arrival || '???'}`}
             </div>
           </CardContent>
         </Card>
@@ -441,7 +443,7 @@ export function ProfilePage() {
       <div className="flex items-center justify-end gap-4 pt-2 pb-8">
         {isDirty && !saving && (
           <span className="text-sm text-amber-500 font-medium animate-pulse bg-amber-500/10 px-3 py-1.5 rounded-md">
-            Unsaved changes
+            {t('profile.unsavedChanges')}
           </span>
         )}
         <Button 
@@ -451,11 +453,11 @@ export function ProfilePage() {
           className="shadow-md min-w-[180px]"
         >
           {saved ? (
-            <><CheckCircle2 className="h-4 w-4 mr-2" /> Saved</>
+            <><CheckCircle2 className="h-4 w-4 mr-2" /> {t('common.saved')}</>
           ) : saving ? (
-            <><Save className="h-4 w-4 mr-2 animate-pulse" /> Saving…</>
+            <><Save className="h-4 w-4 mr-2 animate-pulse" /> {t('common.saving')}</>
           ) : (
-            <><Save className="h-4 w-4 mr-2" /> Save Profile</>
+            <><Save className="h-4 w-4 mr-2" /> {t('profile.saveProfile')}</>
           )}
         </Button>
       </div>

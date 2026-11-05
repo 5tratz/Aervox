@@ -2,6 +2,7 @@ import type { SimPosition } from '@/lib/simconnect-context'
 import { FlightInfoPanel, type FlightInfoPilot } from './vatsim-panel'
 import type { SimbriefOFP } from '@/lib/simbrief'
 import { usePilot } from '@/lib/pilot-context'
+import { useLocale } from '@/lib/locale-context'
 
 function cleanAircraftName(title?: string | null) {
   if (!title) return 'AIRCRAFT'
@@ -25,10 +26,11 @@ export function OwnAircraftPanel({
   onFollow?: () => void
   isFollowing?: boolean
 }) {
+  const { t } = useLocale()
   const { pilot: profile } = usePilot()
 
   const pilot: FlightInfoPilot = {
-    callsign: profile.callsign || pos.callsign || 'YOU',
+    callsign: profile.callsign || pos.callsign || t('airport.you'),
     aircraft: cleanAircraftName(pos.title),
     lat: pos.latitude,
     lon: pos.longitude,

@@ -8,6 +8,7 @@ import type { SimPosition } from '@/lib/simconnect-context'
 import type { SimbriefOFP } from '@/lib/simbrief'
 import { LiveFlightRow } from './airport-panel-row'
 import { distanceNm, cleanAircraftName, formatTime, type RowPilot } from './airport-utils'
+import { useLocale } from '@/lib/locale-context'
 import tzlookup from 'tz-lookup'
 
 interface Props {
@@ -88,6 +89,7 @@ export function AirportPanel({
   pilots, vatsimOn, selfPilot, selfAircraft, selfCallsign = 'YOU', selfFlightNumber, ofp,
   onShowOnMap,
 }: Props) {
+  const { t } = useLocale()
   const [activeTab, setActiveTab] = useState<Tab>('general')
 
   const [trend, setTrend] = useState<'climb' | 'descend' | 'level'>('level')
@@ -304,13 +306,13 @@ export function AirportPanel({
           </span>
         </div>
         <div className="flex items-center gap-2 text-xs text-gray-300 mt-2 font-medium">
-          <span className="cursor-help" title={`Local airport time (${localTime.tz})`}>
+          <span className="cursor-help" title={`${t('airport.localTime')} (${localTime.tz})`}>
             {localTime.timeStr} LT
           </span>
           <span>|</span>
           <span>{localTime.dateStr}</span>
           <span>|</span>
-          <span>Elev. {airport.alt} ft</span>
+          <span>{t('airport.elevation')} {airport.alt} ft</span>
         </div>
       </div>
 
@@ -319,7 +321,7 @@ export function AirportPanel({
           <div className="p-3 space-y-3">
             <div className="grid grid-cols-3 gap-2">
               <div className="bg-white dark:bg-zinc-900 rounded border border-border p-2 flex flex-col items-center justify-center">
-                <span className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">Conditions</span>
+                <span className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">{t('airport.conditions')}</span>
                 {metarLoading ? (
                   <div className="h-5 w-5 animate-pulse bg-muted rounded-full my-1" />
                 ) : (
@@ -328,7 +330,7 @@ export function AirportPanel({
                 <span className="font-semibold text-xs">{metar?.flight_category || '—'}</span>
               </div>
               <div className="bg-white dark:bg-zinc-900 rounded border border-border p-2 flex flex-col items-center justify-center">
-                <span className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">Temperature</span>
+                <span className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">{t('airport.temperature')}</span>
                 {metarLoading ? (
                   <div className="h-6 w-12 animate-pulse bg-muted rounded my-1" />
                 ) : (
@@ -338,7 +340,7 @@ export function AirportPanel({
                 )}
               </div>
               <div className="bg-white dark:bg-zinc-900 rounded border border-border p-2 flex flex-col items-center justify-center">
-                <span className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">Wind</span>
+                <span className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">{t('airport.wind')}</span>
                 {metarLoading ? (
                   <div className="h-5 w-10 animate-pulse bg-muted rounded my-1" />
                 ) : metar?.wind_speed != null ? (
@@ -360,39 +362,39 @@ export function AirportPanel({
                 className="w-full py-2 flex items-center justify-center gap-2 text-blue-500 hover:bg-muted text-sm font-medium transition-colors"
               >
                 <CloudRain className="h-4 w-4" />
-                More weather &amp; METAR
+                {t('airport.moreWeather')}
                 {showMetarDetails ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
               </button>
 
               {showMetarDetails && (
                 <div className="border-t border-border p-3 space-y-3">
                   {metarLoading ? (
-                    <p className="text-xs text-center text-muted-foreground">Loading weather data...</p>
+                    <p className="text-xs text-center text-muted-foreground">{t('airport.loadingWeather')}</p>
                   ) : metar ? (
                     <>
                       <div className="grid grid-cols-3 gap-2 text-center">
                         <div>
-                          <span className="text-[10px] text-muted-foreground uppercase">Altimeter</span>
+                          <span className="text-[10px] text-muted-foreground uppercase">{t('airport.altimeter')}</span>
                           <p className="text-xs font-semibold">{metar.altimeter} hPa</p>
                         </div>
                         <div>
-                          <span className="text-[10px] text-muted-foreground uppercase">Dew Point</span>
+                          <span className="text-[10px] text-muted-foreground uppercase">{t('airport.dewPoint')}</span>
                           <p className="text-xs font-semibold">{metar.dewpoint} °C</p>
                         </div>
                         <div>
-                          <span className="text-[10px] text-muted-foreground uppercase">Humidity</span>
+                          <span className="text-[10px] text-muted-foreground uppercase">{t('airport.humidity')}</span>
                           <p className="text-xs font-semibold">{calculateHumidity(metar.temp, metar.dewpoint)} %</p>
                         </div>
                       </div>
                       <div className="pt-2 border-t border-border/50">
-                        <span className="text-[10px] text-muted-foreground uppercase">Latest METAR</span>
+                        <span className="text-[10px] text-muted-foreground uppercase">{t('airport.latestMetar')}</span>
                         <p className="text-xs font-mono mt-1 text-muted-foreground leading-relaxed break-words">
                           {metar.raw}
                         </p>
                       </div>
                     </>
                   ) : (
-                    <p className="text-xs text-center text-muted-foreground">No METAR data available for this airport.</p>
+                    <p className="text-xs text-center text-muted-foreground">{t('airport.noMetar')}</p>
                   )}
                 </div>
               )}
@@ -410,8 +412,8 @@ export function AirportPanel({
                     <path d="M13 17V5" />
                     <path d="M8 17v-3" />
                   </svg>
-                  <span className="text-[13px] font-bold text-foreground tracking-wide uppercase">Airport Statistics</span>
-                  <span className="bg-muted border border-border text-[9px] font-bold px-2 py-0.5 rounded text-muted-foreground">LIVE</span>
+                  <span className="text-[13px] font-bold text-foreground tracking-wide uppercase">{t('airport.statsTitle')}</span>
+                  <span className="bg-muted border border-border text-[9px] font-bold px-2 py-0.5 rounded text-muted-foreground">{t('airport.live')}</span>
                 </div>
                 {showStats ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
               </button>
@@ -420,11 +422,11 @@ export function AirportPanel({
                 <div className="border-t border-border p-3 space-y-3 bg-muted/10">
                   <div className="grid grid-cols-2 gap-2">
                     <div className="bg-background rounded-md border border-border p-2.5">
-                      <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Live Departures</span>
+                      <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">{t('airport.liveDepartures')}</span>
                       <p className="font-bold text-sm text-foreground mt-1">{departures.length}</p>
                     </div>
                     <div className="bg-background rounded-md border border-border p-2.5">
-                      <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Live Arrivals</span>
+                      <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">{t('airport.liveArrivals')}</span>
                       <p className="font-bold text-sm text-foreground mt-1">{arrivals.length}</p>
                     </div>
                   </div>
@@ -439,8 +441,8 @@ export function AirportPanel({
             {departures.length === 0 ? (
               <div className="p-8 text-center text-muted-foreground space-y-2">
                 <PlaneTakeoff className="h-8 w-8 mx-auto opacity-50" />
-                <p className="text-sm">No live departures from {airport.iata || airport.icao}.</p>
-                <p className="text-xs opacity-70">Turn on VATSIM in the Flights tab to see more.</p>
+                <p className="text-sm">{t('airport.noDepartures')} {airport.iata || airport.icao}.</p>
+                <p className="text-xs opacity-70">{t('airport.turnOnVatsim')}</p>
               </div>
             ) : (
               departures.map(p => (
@@ -455,8 +457,8 @@ export function AirportPanel({
             {arrivals.length === 0 ? (
               <div className="p-8 text-center text-muted-foreground space-y-2">
                 <PlaneLanding className="h-8 w-8 mx-auto opacity-50" />
-                <p className="text-sm">No live arrivals into {airport.iata || airport.icao}.</p>
-                <p className="text-xs opacity-70">Turn on VATSIM in the Flights tab to see more.</p>
+                <p className="text-sm">{t('airport.noArrivals')} {airport.iata || airport.icao}.</p>
+                <p className="text-xs opacity-70">{t('airport.turnOnVatsim')}</p>
               </div>
             ) : (
               arrivals.map(p => (
@@ -471,8 +473,8 @@ export function AirportPanel({
              {ground.length === 0 ? (
               <div className="p-8 text-center text-muted-foreground space-y-2">
                 <Plane className="h-8 w-8 mx-auto opacity-50" />
-                <p className="text-sm">No aircraft on ground.</p>
-                <p className="text-xs opacity-70">Planes with altitude &lt; 100ft near the airport appear here.</p>
+                <p className="text-sm">{t('airport.noGround')}</p>
+                <p className="text-xs opacity-70">{t('airport.groundHint')}</p>
               </div>
             ) : (
               ground.map(p => (
@@ -491,7 +493,7 @@ export function AirportPanel({
           }`}
         >
           <MapPin className="h-4 w-4" />
-          General
+          {t('airport.tabGeneral')}
         </button>
         <button
           onClick={() => setActiveTab('departures')}
@@ -500,7 +502,7 @@ export function AirportPanel({
           }`}
         >
           <PlaneTakeoff className="h-4 w-4" />
-          Departures
+          {t('airport.tabDepartures')}
         </button>
         <button
           onClick={() => setActiveTab('arrivals')}
@@ -509,7 +511,7 @@ export function AirportPanel({
           }`}
         >
           <PlaneLanding className="h-4 w-4" />
-          Arrivals
+          {t('airport.tabArrivals')}
         </button>
         <button
           onClick={() => setActiveTab('ground')}
@@ -518,7 +520,7 @@ export function AirportPanel({
           }`}
         >
           <Plane className="h-4 w-4" />
-          On Ground
+          {t('airport.tabGround')}
         </button>
       </div>
     </div>

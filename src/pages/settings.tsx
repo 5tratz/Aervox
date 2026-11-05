@@ -61,7 +61,7 @@ export function SettingsPage() {
       const bytes = await readFile(file)
       const ext = file.split('.').pop()?.toLowerCase() ?? 'png'
       await setFromFile(bytes, ext)
-      toast.success('Background updated')
+      toast.success(t('settings.bgUpdated'))
     } catch (e) {
       console.error('Background pick failed:', e)
       toast.error(String(e))
@@ -74,7 +74,7 @@ export function SettingsPage() {
     setBgBusy(true)
     try {
       await clear()
-      toast.success('Background removed')
+      toast.success(t('settings.bgRemoved'))
     } catch (e) {
       toast.error(String(e))
     } finally {
@@ -125,11 +125,11 @@ export function SettingsPage() {
         await invoke('save_packages_path', { path: '' })
       } catch { /* not critical */ }
 
-      toast.success('All app data has been wiped.')
+      toast.success(t('settings.wipeSuccess'))
       setTimeout(() => window.location.reload(), 1000)
     } catch (e) {
       console.error(e)
-      toast.error('Failed to wipe data: ' + String(e))
+      toast.error(t('settings.wipeFailed') + ' ' + String(e))
       setWiping(false)
     }
   }
@@ -157,13 +157,13 @@ export function SettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Appearance</CardTitle>
-          <CardDescription>Customize how the app looks. Changes apply to the main content area.</CardDescription>
+          <CardTitle>{t('settings.appearance')}</CardTitle>
+          <CardDescription>{t('settings.appearanceDesc')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label>Background Image</Label>
-            <p className="text-xs text-muted-foreground">Shown behind the main content area across all tabs. PNG, JPG or WebP. Ideally at least 1920×1080.</p>
+            <Label>{t('settings.bgImage')}</Label>
+            <p className="text-xs text-muted-foreground">{t('settings.bgImageDesc')}</p>
             <div className="flex items-start gap-4">
               <div className="h-24 w-40 shrink-0 overflow-hidden rounded-md border bg-muted flex items-center justify-center">
                 {bgUrl ? (
@@ -175,14 +175,14 @@ export function SettingsPage() {
               <div className="flex flex-col gap-2">
                 <Button variant="outline" size="sm" onClick={pickBackground} disabled={bgBusy}>
                   <Upload className="h-4 w-4 mr-1" />
-                  {bgUrl ? 'Change Image' : 'Upload Image'}
+                  {bgUrl ? t('settings.changeImage') : t('settings.uploadImage')}
                 </Button>
                 {bgFilename && (
                   <Button variant="ghost" size="sm" onClick={clearBackground} disabled={bgBusy} className="text-destructive">
-                    <Trash2 className="h-4 w-4 mr-1" /> Remove Image
+                    <Trash2 className="h-4 w-4 mr-1" /> {t('settings.removeImage')}
                   </Button>
                 )}
-                {bgBusy && <p className="text-xs text-muted-foreground">Saving…</p>}
+                {bgBusy && <p className="text-xs text-muted-foreground">{t('common.saving')}</p>}
               </div>
             </div>
           </div>
@@ -193,24 +193,22 @@ export function SettingsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-destructive">
             <AlertTriangle className="h-5 w-5" />
-            Danger Zone
+            {t('settings.dangerZone')}
           </CardTitle>
-          <CardDescription>Destructive actions — cannot be undone.</CardDescription>
+          <CardDescription>{t('settings.dangerZoneDesc')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-start justify-between gap-4 rounded-md border border-destructive/40 bg-destructive/5 p-4">
             <div className="space-y-1">
               <p className="text-sm font-semibold flex items-center gap-2 text-destructive">
-                <Trash2 className="h-4 w-4" /> Wipe All App Data
+                <Trash2 className="h-4 w-4" /> {t('settings.wipeData')}
               </p>
               <p className="text-xs text-muted-foreground">
-                Permanently deletes your <strong>flight log</strong>, pilot profile, avatar, map settings,
-                background image, MSFS path, and all other stored preferences. Your theme and language
-                preferences are kept. This cannot be undone.
+                {t('settings.wipeDataDesc')}
               </p>
             </div>
             <Button variant="destructive" className="shrink-0" onClick={() => setWipeOpen(true)}>
-              Reset
+              {t('settings.reset')}
             </Button>
           </div>
         </CardContent>
@@ -222,16 +220,14 @@ export function SettingsPage() {
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10 mb-2">
               <AlertTriangle className="h-6 w-6 text-destructive" />
             </div>
-            <DialogTitle className="text-center text-destructive">Wipe All App Data</DialogTitle>
+            <DialogTitle className="text-center text-destructive">{t('settings.wipeConfirmTitle')}</DialogTitle>
             <DialogDescription className="text-center">
-              This will <strong>permanently delete</strong> your flight log, pilot profile, avatar,
-              map settings, background image, MSFS path, and all other stored preferences.
-              Your theme and language preferences will be kept. This cannot be undone.
+              {t('settings.wipeConfirmDesc')}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2 py-2">
             <Label htmlFor="wipe-confirm">
-              Type <span className="font-mono font-semibold">RESET</span> to confirm
+              {t('settings.typeReset')}
             </Label>
             <Input
               id="wipe-confirm"
@@ -242,13 +238,13 @@ export function SettingsPage() {
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setWipeOpen(false)} disabled={wiping}>Cancel</Button>
+            <Button variant="outline" onClick={() => setWipeOpen(false)} disabled={wiping}>{t('common.cancel')}</Button>
             <Button
               variant="destructive"
               onClick={handleWipeAllData}
               disabled={wiping || wipeConfirm !== 'RESET'}
             >
-              {wiping ? 'Wiping…' : 'Wipe Everything'}
+              {wiping ? t('settings.wiping') : t('settings.wipeEverything')}
             </Button>
           </DialogFooter>
         </DialogContent>

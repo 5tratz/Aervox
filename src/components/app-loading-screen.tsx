@@ -1,4 +1,17 @@
+import { useLocale } from '@/lib/locale-context'
+
 export function AppLoadingScreen() {
+  // Note: Because this loads before the app is fully ready, we provide a safe fallback
+  // in case the locale context isn't ready yet.
+  let loadingText = 'Loading'
+  try {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const { t } = useLocale()
+    loadingText = t('common.loading')
+  } catch {
+    // Context not ready yet
+  }
+
   return (
     <div className="flex h-screen w-screen flex-col items-center justify-center gap-6 bg-background text-foreground">
       <div className="relative flex h-20 w-20 items-center justify-center">
@@ -15,7 +28,7 @@ export function AppLoadingScreen() {
       </div>
       <div className="flex flex-col items-center gap-2">
         <p className="text-sm font-medium tracking-wide text-foreground">
-          Loading<span className="inline-flex w-4 justify-start"><Dots /></span>
+          {loadingText}<span className="inline-flex w-4 justify-start"><Dots /></span>
         </p>
         <p className="text-xs text-muted-foreground">Aervox</p>
       </div>

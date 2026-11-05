@@ -7,6 +7,7 @@ import { useTheme } from 'next-themes'
 import { type Airport } from '@/lib/airports'
 import { fetchMetar, type MetarData } from '@/lib/weather'
 import { loadJson, saveJson } from '@/lib/storage'
+import { useLocale } from '@/lib/locale-context'
 import { toast } from 'sonner'
 import { useSimbrief } from '@/lib/simbrief-context'
 import { usePilot } from '@/lib/pilot-context'
@@ -138,6 +139,7 @@ function MapViewPersistence({ onReady }: { onReady: (map: L.Map) => void }) {
 }
 
 export function LiveMap() {
+  const { t } = useLocale()
   const { position, aircraftFromFile, lastFlightStarted, connected } = useSimConnect()
   const { theme } = useTheme()
   const { ofp } = useSimbrief()
@@ -170,9 +172,6 @@ export function LiveMap() {
   const mapRef = useRef<L.Map | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
 
-  // Remembers the last theme value we applied. This lets us tell the difference
-  // between "the user just toggled the theme" (react!) and "the component just
-  // remounted with the same theme" (do nothing, keep the saved style).
   const lastAppliedThemeRef = useRef<string | null>(null)
 
   useEffect(() => {
@@ -194,11 +193,11 @@ export function LiveMap() {
   const prevConnected = useRef(connected)
   useEffect(() => {
     if (prevConnected.current !== connected) {
-      if (connected) toast.success('Connected to Microsoft Flight Simulator')
-      else toast.info('Disconnected from Microsoft Flight Simulator')
+      if (connected) toast.success(t('map.connected'))
+      else toast.info(t('map.disconnected'))
       prevConnected.current = connected
     }
-  }, [connected])
+  }, [connected, t])
 
   useEffect(() => {
     Promise.all([
@@ -219,29 +218,19 @@ export function LiveMap() {
     if (settingsLoaded) saveJson('settings/flights.json', flightSettings)
   }, [settingsLoaded, flightSettings])
 
-  // ✅ Theme switching works. Manual style persists across restarts.
-  //
-  // Rule:
-  //  - On first mount (after settings load), record the current theme. Don't
-  //    overwrite the saved style. This means "Satellite" survives a restart.
-  //  - If the theme ACTUALLY changes after that, follow it. This means toggling
-  //    light/dark in the header still flips the map.
   useEffect(() => {
     if (!settingsLoaded) return
     const currentTheme = theme ?? 'dark'
 
     if (lastAppliedThemeRef.current === null) {
-      // First time seeing a theme after load: remember it, don't touch style.
       lastAppliedThemeRef.current = currentTheme
       return
     }
 
     if (lastAppliedThemeRef.current === currentTheme) {
-      // Theme hasn't changed, nothing to do.
       return
     }
 
-    // Theme actually changed — sync the map style.
     lastAppliedThemeRef.current = currentTheme
     const themeStyle = currentTheme === 'dark' ? 'dark' : 'roadmap'
     setSettings((prev) =>
@@ -345,11 +334,11 @@ export function LiveMap() {
     const map = mapRef.current
     if (!map) return
     if (lat == null || lon == null) {
-      toast.info('Waiting for aircraft position…')
+      toast.info(t('map.waitingPos'))
       return
     }
     map.flyTo([lat, lon], Math.max(map.getZoom(), 8), { duration: 1.2 })
-  }, [lat, lon])
+  }, [lat, lon, t])
 
   const handleShowOnMap = useCallback((target: RowPilot) => {
     const map = mapRef.current

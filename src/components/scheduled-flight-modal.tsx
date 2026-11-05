@@ -5,6 +5,7 @@ import { getAirport } from '@/lib/airports'
 import type { LiveFlight } from '@/lib/live-schedule'
 import { buildSimbriefUrl } from './simbrief-link'
 import { useAcceptedFlight } from '@/lib/accepted-flight-context'
+import { useLocale } from '@/lib/locale-context'
 import { toast } from 'sonner'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { useNavigate } from 'react-router-dom'
@@ -27,6 +28,7 @@ export function ScheduledFlightModal({
   route: LiveFlight
   onClose: () => void
 }) {
+  const { t } = useLocale()
   const { accept, accepted } = useAcceptedFlight()
   const navigate = useNavigate()
   const isAlreadyAccepted = accepted?.id === route.id
@@ -38,16 +40,16 @@ export function ScheduledFlightModal({
     if (isDeparted) return
     try {
       await openUrl(buildSimbriefUrl(route))
-      toast.success('SimBrief opened in your browser. Click "Generate" there, then come back.')
+      toast.success(t('scheduled.simbriefOpened'))
     } catch (e) {
-      toast.error(`Could not open browser: ${e}`)
+      toast.error(`${t('scheduled.browserError')} ${e}`)
     }
   }
 
   const handleAccept = async () => {
     if (isDeparted) return
     await accept(route)
-    toast.success(`Accepted ${route.flightNumber} — ${route.departure} → ${route.arrival}`)
+    toast.success(`${t('scheduled.acceptedToast')} ${route.flightNumber} — ${route.departure} → ${route.arrival}`)
     onClose()
     navigate('/flight-plan')
   }
@@ -96,15 +98,15 @@ export function ScheduledFlightModal({
 
           <div className="grid grid-cols-3 gap-2 text-xs">
             <div className="bg-muted/50 border border-border rounded-md p-2 text-center">
-              <div className="text-[9px] uppercase text-muted-foreground tracking-wider">Aircraft</div>
+              <div className="text-[9px] uppercase text-muted-foreground tracking-wider">{t('scheduled.modalAircraft')}</div>
               <div className="font-mono font-semibold mt-0.5">{route.aircraft}</div>
             </div>
             <div className="bg-muted/50 border border-border rounded-md p-2 text-center">
-              <div className="text-[9px] uppercase text-muted-foreground tracking-wider">Departs</div>
+              <div className="text-[9px] uppercase text-muted-foreground tracking-wider">{t('scheduled.modalDeparts')}</div>
               <div className="font-mono font-semibold mt-0.5">{route.departureTime}</div>
             </div>
             <div className="bg-muted/50 border border-border rounded-md p-2 text-center">
-              <div className="text-[9px] uppercase text-muted-foreground tracking-wider">Duration</div>
+              <div className="text-[9px] uppercase text-muted-foreground tracking-wider">{t('scheduled.modalDuration')}</div>
               <div className="font-mono font-semibold mt-0.5">{formatDuration(route.durationMin)}</div>
             </div>
           </div>
@@ -112,7 +114,7 @@ export function ScheduledFlightModal({
           {isDeparted && (
             <div className="bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 rounded-md p-3 flex items-start gap-3 text-sm">
               <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
-              <p>This flight has already departed. You can no longer accept it. Please choose another flight from the schedule.</p>
+              <p>{t('scheduled.modalDepartedWarning')}</p>
             </div>
           )}
 
@@ -124,7 +126,7 @@ export function ScheduledFlightModal({
               disabled={isDeparted}
             >
               <ExternalLink className="h-4 w-4" />
-              Fetch SimBrief Plan
+              {t('scheduled.fetchSimbrief')}
             </Button>
             <Button
               onClick={handleAccept}
@@ -133,12 +135,11 @@ export function ScheduledFlightModal({
               disabled={isAlreadyAccepted || isDeparted}
             >
               <CheckCircle2 className="h-4 w-4" />
-              {isAlreadyAccepted ? 'Already accepted' : 'Accept this flight'}
+              {isAlreadyAccepted ? t('scheduled.alreadyAccepted') : t('scheduled.acceptFlight')}
             </Button>
             {!isDeparted && (
               <p className="text-[10px] text-muted-foreground text-center pt-1 leading-relaxed">
-                Accepting saves the flight and takes you to the Flight Plan page.
-                Fetch SimBrief opens the dispatch page in your browser with the route pre-filled.
+                {t('scheduled.acceptHint')}
               </p>
             )}
           </div>
