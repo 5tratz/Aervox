@@ -5,7 +5,7 @@ import { writeFile, BaseDirectory, mkdir, exists } from '@tauri-apps/plugin-fs'
 import {
   User, Upload, Trash2, Save, Plane, MapPin,
   Award, AlertCircle, CheckCircle2, Clock, ExternalLink,
-  Calendar, CalendarDays, ClipboardList
+  Calendar, CalendarDays
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
