@@ -5,7 +5,7 @@ import { writeFile, BaseDirectory, mkdir, exists } from '@tauri-apps/plugin-fs'
 import {
   User, Upload, Trash2, Save, Plane, MapPin,
   Award, AlertCircle, CheckCircle2, Clock, ExternalLink,
-  Calendar, CalendarDays
+  Calendar, CalendarDays, Star, Crosshair
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -17,6 +17,7 @@ import { useSimbrief } from '@/lib/simbrief-context'
 import { useFlightLog } from '@/lib/flight-log-context'
 import { readAvatarAsDataUrl } from '@/lib/storage'
 import { useLocale } from '@/lib/locale-context'
+import { getAirport } from '@/lib/airports'
 import { toast } from 'sonner'
 import { useNavigate } from 'react-router-dom'
 
@@ -147,6 +148,22 @@ export function ProfilePage() {
     } finally {
       setAvatarBusy(false)
     }
+  }
+
+  const removeFavorite = async (icao: string) => {
+    const currentFavorites = pilot.favoriteAirports || []
+    const newFavorites = currentFavorites.filter(f => f !== icao)
+    await update({ favoriteAirports: newFavorites })
+  }
+
+  const locateOnMap = (icao: string) => {
+    // Save the airport to session storage so the live map can read it
+    sessionStorage.setItem('aervox:locate', icao)
+    // Clear any stale persisted map view so the map doesn't briefly
+    // restore an old position before flying to the requested airport.
+    sessionStorage.removeItem('map:view')
+    // Navigate to the dashboard
+    navigate('/')
   }
 
   const completedFlights = flights.filter(f => f.status === 'completed')
@@ -320,6 +337,56 @@ export function ProfilePage() {
             </CardContent>
           </Card>
 
+          {/* Favorite Airports (Compact) */}
+          <Card className="flex flex-col border-border/60 shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Star className="h-5 w-5 text-primary" /> {t('profile.favoriteAirports')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {pilot.favoriteAirports && pilot.favoriteAirports.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                  {pilot.favoriteAirports.map(icao => {
+                    const airport = getAirport(icao)
+                    return (
+                      <div key={icao} className="flex items-center justify-between p-2 rounded-md bg-muted/20 border border-border/50">
+                        <div className="flex flex-col min-w-0">
+                          <span className="font-mono font-bold text-sm">{icao}</span>
+                          {airport && <span className="text-[10px] text-muted-foreground truncate">{airport.name}</span>}
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0 ml-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                            onClick={() => locateOnMap(icao)}
+                            title="Locate on Map"
+                          >
+                            <Crosshair className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-yellow-400 hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => removeFavorite(icao)}
+                            title="Remove from favorites"
+                          >
+                            <Star className="h-4 w-4 fill-current" />
+                          </Button>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground py-2">
+                  {t('profile.noFavoriteAirports')}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
           {/* SimBrief Integration */}
           <Card className="flex flex-col border-border/60 shadow-sm">
             <CardHeader>
@@ -351,7 +418,6 @@ export function ProfilePage() {
               <div className="w-full">
                 {ofp ? (
                   <div className="space-y-2">
-                    {/* NEW: Title above the loaded flight plan */}
                     <Label className="text-muted-foreground ml-1">
                       Currently Imported Flight Plan
                     </Label>

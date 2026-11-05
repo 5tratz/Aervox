@@ -22,8 +22,8 @@ export function LocaleToggle() {
   ]
 
   const CURRENCIES: { value: Currency; label: string }[] = [
-    { value: 'GBP', label: 'GBP £' },
-    { value: 'USD', label: 'USD $' },
+    { value: 'GBP', label: '£ GBP' },
+    { value: 'USD', label: '$ USD' },
     { value: 'EUR', label: 'EUR €' },
   ]
 

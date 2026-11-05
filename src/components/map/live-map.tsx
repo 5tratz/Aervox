@@ -4,7 +4,7 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useSimConnect, type SimPosition } from '@/lib/simconnect-context'
 import { useTheme } from 'next-themes'
-import { type Airport } from '@/lib/airports'
+import { getAirport, type Airport } from '@/lib/airports'
 import { fetchMetar, type MetarData } from '@/lib/weather'
 import { loadJson, saveJson } from '@/lib/storage'
 import { useLocale } from '@/lib/locale-context'
@@ -76,6 +76,9 @@ const DEFAULT_FLIGHT_SETTINGS = {
   showTrails: false,
   showOwnTrail: true,
 }
+
+// Zoom level used for every "locate" action so they all feel identical
+const LOCATE_ZOOM = 13
 
 type SelectedEntity =
   | { type: 'vatsim'; data: VatsimPilot }
@@ -171,6 +174,7 @@ export function LiveMap() {
 
   const mapRef = useRef<L.Map | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
+  const mapReadyRef = useRef(false)
 
   const lastAppliedThemeRef = useRef<string | null>(null)
 
@@ -263,6 +267,88 @@ export function LiveMap() {
     return () => { cancelled = true }
   }, [selectedAirport])
 
+  // Handle a "locate airport on map" request coming from the Profile page
+  // (or anywhere else). Waits for the map to be fully ready, then flies to
+  // the airport at the same zoom level used by the aircraft locate action.
+  useEffect(() => {
+    const icao = sessionStorage.getItem('aervox:locate')
+    if (!icao) return
+
+    let cancelled = false
+    let timer: ReturnType<typeof setTimeout> | null = null
+    let attempts = 0
+
+    const attemptLocate = () => {
+      if (cancelled) return
+
+      const map = mapRef.current
+      const airport = getAirport(icao) as
+        | (Airport & { latitude?: number; longitude?: number; lat?: number; lon?: number; lng?: number })
+        | null
+        | undefined
+
+      // Wait until the map ref exists, the map is marked ready, and the
+      // airport lookup succeeded. Retry for ~4s then give up silently.
+      if ((!map || !mapReadyRef.current || !airport) && attempts < 40) {
+        attempts += 1
+        timer = setTimeout(attemptLocate, 100)
+        return
+      }
+
+      if (!map || !airport) return
+
+      // The Airport type uses different field names in different projects.
+      // Normalise so we never call flyTo with undefined values.
+      const aptLat =
+        typeof airport.latitude === 'number' ? airport.latitude :
+        typeof airport.lat === 'number' ? airport.lat :
+        undefined
+
+      const aptLon =
+        typeof airport.longitude === 'number' ? airport.longitude :
+        typeof airport.lon === 'number' ? airport.lon :
+        typeof airport.lng === 'number' ? airport.lng :
+        undefined
+
+      // If coordinates are genuinely missing, don't crash the map — just
+      // clean up the request and still open the airport panel.
+      if (aptLat == null || aptLon == null) {
+        sessionStorage.removeItem('aervox:locate')
+        setSelectedAirport(airport)
+        setSelectedEntity(null)
+        setActiveTab('airport')
+        setFollowTarget(null)
+        setIsFollowing(false)
+        return
+      }
+
+      // Consume the request so it only fires once.
+      sessionStorage.removeItem('aervox:locate')
+
+      // Same zoom behaviour as handleShowOnMap / handleCenterOnMe:
+      // never zoom out, but bump up to the shared locate zoom if we're
+      // currently further out.
+      const targetZoom = Math.max(map.getZoom(), LOCATE_ZOOM)
+
+      map.flyTo([aptLat, aptLon], targetZoom, { duration: 1.2 })
+
+      setSelectedAirport(airport)
+      setSelectedEntity(null)
+      setActiveTab('airport')
+      setFollowTarget(null)
+      setIsFollowing(false)
+    }
+
+    // Small delay so the initial view (restored center/zoom) has settled
+    // before we start flying. This mirrors the feel of clicking a marker.
+    timer = setTimeout(attemptLocate, 150)
+
+    return () => {
+      cancelled = true
+      if (timer) clearTimeout(timer)
+    }
+  }, [])
+
   const lat = position?.latitude ?? null
   const lon = position?.longitude ?? null
   const center: [number, number] = lat != null && lon != null ? [lat, lon] : [51.5048, 0.0495]
@@ -337,14 +423,14 @@ export function LiveMap() {
       toast.info(t('map.waitingPos'))
       return
     }
-    map.flyTo([lat, lon], Math.max(map.getZoom(), 8), { duration: 1.2 })
+    map.flyTo([lat, lon], Math.max(map.getZoom(), LOCATE_ZOOM), { duration: 1.2 })
   }, [lat, lon, t])
 
   const handleShowOnMap = useCallback((target: RowPilot) => {
     const map = mapRef.current
     if (!map) return
 
-    map.flyTo([target.lat, target.lon], Math.max(map.getZoom(), 8), { duration: 1.2 })
+    map.flyTo([target.lat, target.lon], Math.max(map.getZoom(), LOCATE_ZOOM), { duration: 1.2 })
 
     if (target.isSelf) {
       if (position) {
@@ -381,7 +467,16 @@ export function LiveMap() {
           className="h-full w-full"
           zoomControl={false}
         >
-          <MapViewPersistence onReady={(m) => { mapRef.current = m }} />
+          <MapViewPersistence
+            onReady={(m) => {
+              mapRef.current = m
+              // Mark ready on the next frame so the initial view / tiles
+              // have a tick to settle before any locate fly-to runs.
+              requestAnimationFrame(() => {
+                mapReadyRef.current = true
+              })
+            }}
+          />
 
           <TileBrightness brightness={settings.brightness} />
 

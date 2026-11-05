@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { usePilot } from '@/lib/pilot-context'
 import { useLocale } from '@/lib/locale-context'
-import { toast } from 'sonner'
 
 export function AuthPage() {
   const navigate = useNavigate()
@@ -19,10 +18,12 @@ export function AuthPage() {
   const [password, setPassword] = useState('')
   const [displayName, setDisplayName] = useState('')
   const [busy, setBusy] = useState(false)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     setBusy(true)
+    setErrorMsg(null)
     
     try {
       if (mode === 'login') {
@@ -32,9 +33,9 @@ export function AuthPage() {
       }
       navigate('/')
     } catch (err: any) {
-      if (err.message.includes('Invalid email')) toast.error(t('auth.invalidCredentials'))
-      else if (err.message.includes('already exists')) toast.error(t('auth.emailInUse'))
-      else toast.error(err.message || 'An error occurred')
+      if (err.message.includes('Invalid email')) setErrorMsg(t('auth.invalidCredentials'))
+      else if (err.message.includes('already exists')) setErrorMsg(t('auth.emailInUse'))
+      else setErrorMsg(err.message || 'An error occurred')
     } finally {
       setBusy(false)
     }
@@ -42,21 +43,17 @@ export function AuthPage() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-background p-6 overflow-hidden">
-      {/* Background decoration */}
       <div className="absolute top-1/4 left-1/4 h-96 w-96 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/20 blur-[120px] pointer-events-none" />
       <div className="absolute bottom-1/4 right-1/4 h-96 w-96 translate-x-1/2 translate-y-1/2 rounded-full bg-blue-500/20 blur-[120px] pointer-events-none" />
 
       <Card className="w-full max-w-md relative z-10 border-white/10 bg-background/60 backdrop-blur-xl shadow-2xl">
         <CardHeader className="text-center pb-6">
-          
-          {/* --- LOGO START --- */}
           <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10 border border-primary/20 shadow-inner overflow-hidden p-2">
             <img
               src="/aervox-logo.png"
               alt="Aervox"
               className="h-full w-full object-contain"
               onError={(e) => {
-                // If the image fails to load, hide it and show the fallback plane icon
                 const target = e.currentTarget as HTMLImageElement
                 target.style.display = 'none'
                 target.parentElement?.querySelector('.logo-fallback')?.classList.remove('hidden')
@@ -64,8 +61,6 @@ export function AuthPage() {
             />
             <Plane className="logo-fallback hidden h-10 w-10 text-primary" />
           </div>
-          {/* --- LOGO END --- */}
-
           <CardTitle className="text-2xl font-bold tracking-tight">
             {mode === 'login' ? t('auth.loginTitle') : t('auth.registerTitle')}
           </CardTitle>
@@ -123,6 +118,12 @@ export function AuthPage() {
               </div>
             </div>
 
+            {errorMsg && (
+              <p className="text-sm text-red-500 bg-red-500/10 border border-red-500/20 px-3 py-2 rounded-md">
+                {errorMsg}
+              </p>
+            )}
+
             <Button type="submit" className="w-full mt-2" size="lg" disabled={busy}>
               {busy ? t('auth.pleaseWait') : mode === 'login' ? t('auth.signIn') : t('auth.createAccount')}
             </Button>
@@ -138,6 +139,7 @@ export function AuthPage() {
                 setEmail('')
                 setPassword('')
                 setDisplayName('')
+                setErrorMsg(null)
               }}
             >
               {mode === 'login' ? t('auth.register') : t('auth.signIn')}

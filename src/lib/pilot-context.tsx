@@ -1,6 +1,8 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { loadJson, saveJson } from './storage'
 import { invoke } from '@tauri-apps/api/core'
+import { useFlightLog } from './flight-log-context'
+import { remove, exists, BaseDirectory } from '@tauri-apps/plugin-fs'
 
 export interface PilotIdentity {
   displayName: string
@@ -11,6 +13,7 @@ export interface PilotIdentity {
   avatarFilename: string | null
   createdAt: number | null
   lastLoginAt: number | null
+  favoriteAirports: string[]
 }
 
 interface StoredAuth {
@@ -28,6 +31,7 @@ const DEFAULT_IDENTITY: PilotIdentity = {
   avatarFilename: null,
   createdAt: null,
   lastLoginAt: null,
+  favoriteAirports: [],
 }
 
 interface PilotContextValue {
@@ -56,26 +60,50 @@ export function PilotProvider({ children }: { children: ReactNode }) {
   const [pilot, setPilot] = useState<PilotIdentity>(DEFAULT_IDENTITY)
   const [ready, setReady] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
+  
+  // Get the flight log clear function
+  const { clearAll: clearFlightLog } = useFlightLog()
 
   const refresh = async () => {
-    const saved = await loadJson<Partial<PilotIdentity>>('settings/user.json')
-    const session = await loadJson<{ loggedIn: boolean }>('settings/session.json')
-    
-    const now = Date.now()
-    const merged: PilotIdentity = {
-      ...DEFAULT_IDENTITY,
-      ...(saved ?? {}),
+    try {
+      const localSession = localStorage.getItem('aervox:session')
+      const localProfile = localStorage.getItem('aervox:profile')
+      
+      let hasSession = localSession === 'true'
+      let merged: PilotIdentity = DEFAULT_IDENTITY
+
+      if (localProfile) {
+        try {
+          merged = { ...DEFAULT_IDENTITY, ...JSON.parse(localProfile) }
+        } catch { /* corrupted local storage, ignore */ }
+      }
+
+      if (!hasSession || !merged.email) {
+        const saved = await loadJson<Partial<PilotIdentity>>('settings/user.json')
+        const session = await loadJson<{ loggedIn: boolean }>('settings/session.json')
+        
+        if (saved) merged = { ...DEFAULT_IDENTITY, ...saved }
+        if (session?.loggedIn) hasSession = true
+      }
+
+      const now = Date.now()
+      if (merged.createdAt === null) merged.createdAt = now
+      if (!merged.favoriteAirports) merged.favoriteAirports = []
+      
+      setPilot(merged)
+      setIsLoggedIn(hasSession && !!merged.email)
+    } catch (err) {
+      console.error('Failed to load pilot data:', err)
+      setIsLoggedIn(false)
+    } finally {
+      setReady(true)
     }
-    if (merged.createdAt === null) merged.createdAt = now
-    
-    setPilot(merged)
-    setIsLoggedIn(session?.loggedIn === true)
-    setReady(true)
   }
 
   const update = async (updates: Partial<PilotIdentity>) => {
     const next = { ...pilot, ...updates }
     await saveJson('settings/user.json', next)
+    localStorage.setItem('aervox:profile', JSON.stringify(next))
     setPilot(next)
   }
 
@@ -104,6 +132,9 @@ export function PilotProvider({ children }: { children: ReactNode }) {
     await saveJson('settings/user.json', next)
     await saveJson('settings/session.json', { loggedIn: true })
     
+    localStorage.setItem('aervox:profile', JSON.stringify(next))
+    localStorage.setItem('aervox:session', 'true')
+    
     setPilot(next)
     setIsLoggedIn(true)
   }
@@ -123,11 +154,26 @@ export function PilotProvider({ children }: { children: ReactNode }) {
     }
     
     await saveJson('settings/auth.json', newAuth)
+    
+    // Wipe the flight log state
+    await clearFlightLog()
+
+    // Wipe the flight log file directly
+    try {
+      if (await exists('settings/flights.json', { baseDir: BaseDirectory.AppData })) {
+        await remove('settings/flights.json', { baseDir: BaseDirectory.AppData })
+      }
+    } catch (e) {
+      console.error('Failed to wipe flight log file:', e)
+    }
+
     await login(email, password)
   }
 
   const logout = async () => {
     await saveJson('settings/session.json', { loggedIn: false })
+    localStorage.removeItem('aervox:session')
+    localStorage.removeItem('aervox:profile')
     setIsLoggedIn(false)
   }
 

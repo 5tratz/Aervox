@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
-import { CloudRain, ArrowDown, Wind, ChevronDown, ChevronUp, MapPin, PlaneTakeoff, PlaneLanding, Plane } from 'lucide-react'
+import { CloudRain, ArrowDown, Wind, MapPin, PlaneTakeoff, PlaneLanding, Plane, Building2, ChevronDown, Star } from 'lucide-react'
+import { toast } from 'sonner'
 import type { Airport } from '@/lib/airports'
 import { calculateHumidity, type MetarData } from '@/lib/weather'
 import { getFlagSvg } from '../map-constants'
@@ -9,6 +10,7 @@ import type { SimbriefOFP } from '@/lib/simbrief'
 import { LiveFlightRow } from './airport-panel-row'
 import { distanceNm, cleanAircraftName, formatTime, type RowPilot } from './airport-utils'
 import { useLocale } from '@/lib/locale-context'
+import { usePilot } from '@/lib/pilot-context'
 import tzlookup from 'tz-lookup'
 
 interface Props {
@@ -56,14 +58,22 @@ function getAirportLocalTime(lat: number, lon: number) {
       timeZone: tz,
     }).format(now)
 
-    const abbr = new Intl.DateTimeFormat('en-GB', {
+    const tzName = new Intl.DateTimeFormat('en-GB', {
       timeZone: tz,
-      timeZoneName: 'short',
-    }).formatToParts(now).find(p => p.type === 'timeZoneName')?.value ?? 'Local'
+      timeZoneName: 'long',
+    }).formatToParts(now).find(p => p.type === 'timeZoneName')?.value ?? tz
 
-    return { timeStr, dateStr, abbr, tz }
+    const offsetPart = new Intl.DateTimeFormat('en-GB', {
+      timeZone: tz,
+      timeZoneName: 'longOffset',
+    }).formatToParts(now).find(p => p.type === 'timeZoneName')?.value ?? 'GMT'
+
+    const offsetStr = offsetPart.replace('GMT', '').trim()
+    const formattedOffset = offsetStr ? `(${offsetStr})` : '(GMT+00:00)'
+
+    return { timeStr, dateStr, abbr: tz, tzName, formattedOffset }
   } catch {
-    return { timeStr: now.toISOString().slice(11, 16), dateStr: '', abbr: 'UTC', tz: 'UTC' }
+    return { timeStr: now.toISOString().slice(11, 16), dateStr: '', abbr: 'UTC', tzName: 'Coordinated Universal Time', formattedOffset: '(UTC+00:00)' }
   }
 }
 
@@ -85,11 +95,12 @@ function vatsimToRow(p: VatsimPilot): RowPilot {
 
 export function AirportPanel({
   airport, metar, metarLoading,
-  showMetarDetails, showStats, onToggleMetar, onToggleStats,
+  showMetarDetails, onToggleMetar, 
   pilots, vatsimOn, selfPilot, selfAircraft, selfCallsign = 'YOU', selfFlightNumber, ofp,
   onShowOnMap,
 }: Props) {
   const { t } = useLocale()
+  const { pilot, update } = usePilot()
   const [activeTab, setActiveTab] = useState<Tab>('general')
 
   const [trend, setTrend] = useState<'climb' | 'descend' | 'level'>('level')
@@ -99,6 +110,23 @@ export function AirportPanel({
   const [arrivalTime, setArrivalTime] = useState<number | null>(null)
 
   const localTime = useMemo(() => getAirportLocalTime(airport.lat, airport.lon), [airport.lat, airport.lon])
+
+  const isFavorite = pilot.favoriteAirports?.includes(airport.icao) || false
+
+  const toggleFavorite = async () => {
+    const currentFavorites = pilot.favoriteAirports || []
+    let newFavorites: string[]
+
+    if (isFavorite) {
+      newFavorites = currentFavorites.filter(icao => icao !== airport.icao)
+      toast.success(t('airport.removedFromFavorites'))
+    } else {
+      newFavorites = [...currentFavorites, airport.icao]
+      toast.success(t('airport.addedToFavorites'))
+    }
+
+    await update({ favoriteAirports: newFavorites })
+  }
 
   useEffect(() => {
     if (!selfPilot) {
@@ -290,14 +318,28 @@ export function AirportPanel({
     if (arrivalTime !== null && now - arrivalTime > PERSIST_MS && !isArriving && !isLanded) setArrivalTime(null)
   }, [selfPilot, trend, airport, departureTime, arrivalTime])
 
+  const imageUrl = `/airports/${airport.icao.toUpperCase()}.webp`
+  const placeholderUrl = '/airports/placeholder.svg'
+
   return (
     <div className="flex flex-col h-full bg-[#f8f9fa] dark:bg-zinc-950 text-foreground relative">
 
       <div className="bg-[#2d2d2d] text-[#fbbf24] p-4 relative shrink-0">
         <div className="flex justify-between items-start mb-1">
-          <h2 className="text-xl font-semibold tracking-tight leading-tight line-clamp-2">
+          <h2 className="text-xl font-semibold tracking-tight leading-tight line-clamp-2 pr-8">
             {airport.name}
           </h2>
+          <button
+            onClick={toggleFavorite}
+            className={`absolute top-4 right-4 p-1.5 rounded-md transition-colors ${
+              isFavorite 
+                ? 'text-yellow-400 hover:bg-white/10' 
+                : 'text-gray-400 hover:text-white hover:bg-white/10'
+            }`}
+            title={isFavorite ? "Remove from favorites" : "Add to favorites"}
+          >
+            <Star className={`h-5 w-5 ${isFavorite ? 'fill-current' : ''}`} />
+          </button>
         </div>
         <div className="flex items-center gap-2 text-sm text-white">
           <div dangerouslySetInnerHTML={{ __html: getFlagSvg(airport.countryCode || 'un') }} />
@@ -306,7 +348,7 @@ export function AirportPanel({
           </span>
         </div>
         <div className="flex items-center gap-2 text-xs text-gray-300 mt-2 font-medium">
-          <span className="cursor-help" title={`${t('airport.localTime')} (${localTime.tz})`}>
+          <span className="cursor-help" title={`${t('airport.localTime')} (${localTime.tzName})`}>
             {localTime.timeStr} LT
           </span>
           <span>|</span>
@@ -319,36 +361,53 @@ export function AirportPanel({
       <div className="flex-1 overflow-y-auto pb-16">
         {activeTab === 'general' && (
           <div className="p-3 space-y-3">
+            
+            {/* Airport Image */}
+            <div className="w-full h-40 rounded-lg overflow-hidden border border-border bg-muted flex items-center justify-center relative shrink-0">
+              <img 
+                src={imageUrl} 
+                alt={airport.name} 
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  const target = e.currentTarget as HTMLImageElement
+                  if (target.src !== window.location.origin + placeholderUrl) {
+                    target.src = placeholderUrl
+                  }
+                }}
+              />
+            </div>
+
             <div className="grid grid-cols-3 gap-2">
-              <div className="bg-white dark:bg-zinc-900 rounded border border-border p-2 flex flex-col items-center justify-center">
-                <span className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">{t('airport.conditions')}</span>
+              <div className="bg-white dark:bg-zinc-900 rounded border border-border p-2 flex flex-col items-center justify-between h-24">
+                <span className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1 text-center leading-tight">{t('airport.conditions')}</span>
                 {metarLoading ? (
-                  <div className="h-5 w-5 animate-pulse bg-muted rounded-full my-1" />
+                  <div className="h-5 w-5 animate-pulse bg-muted rounded-full" />
                 ) : (
-                  <CloudRain className="h-5 w-5 text-muted-foreground mb-1" />
+                  <CloudRain className="h-5 w-5 text-muted-foreground" />
                 )}
-                <span className="font-semibold text-xs">{metar?.flight_category || '—'}</span>
+                <span className="font-semibold text-xs mb-1">{metar?.flight_category || '—'}</span>
               </div>
-              <div className="bg-white dark:bg-zinc-900 rounded border border-border p-2 flex flex-col items-center justify-center">
-                <span className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">{t('airport.temperature')}</span>
+              <div className="bg-white dark:bg-zinc-900 rounded border border-border p-2 flex flex-col items-center justify-between h-24">
+                <span className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1 text-center leading-tight">{t('airport.temperature')}</span>
                 {metarLoading ? (
-                  <div className="h-6 w-12 animate-pulse bg-muted rounded my-1" />
+                  <div className="h-6 w-12 animate-pulse bg-muted rounded" />
                 ) : (
-                  <span className="text-xl font-light leading-none mt-1">
+                  <span className="text-xl font-light leading-none">
                     {metar?.temp != null ? `${metar.temp} °C` : '—'}
                   </span>
                 )}
+                <span className="text-xs opacity-0 mb-1">.</span>
               </div>
-              <div className="bg-white dark:bg-zinc-900 rounded border border-border p-2 flex flex-col items-center justify-center">
-                <span className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">{t('airport.wind')}</span>
+              <div className="bg-white dark:bg-zinc-900 rounded border border-border p-2 flex flex-col items-center justify-between h-24">
+                <span className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1 text-center leading-tight">{t('airport.wind')}</span>
                 {metarLoading ? (
-                  <div className="h-5 w-10 animate-pulse bg-muted rounded my-1" />
+                  <div className="h-5 w-10 animate-pulse bg-muted rounded" />
                 ) : metar?.wind_speed != null ? (
-                  <ArrowDown className="h-5 w-5 text-muted-foreground mb-1" style={{ transform: `rotate(${metar.wind_dir}deg)` }} />
+                  <ArrowDown className="h-5 w-5 text-muted-foreground" style={{ transform: `rotate(${metar.wind_dir}deg)` }} />
                 ) : (
-                  <Wind className="h-4 w-4 text-muted-foreground mb-1" />
+                  <Wind className="h-4 w-4 text-muted-foreground" />
                 )}
-                <span className="font-semibold text-[11px]">
+                <span className="font-semibold text-[11px] mb-1">
                   {metar?.wind_speed != null
                     ? `${metar.wind_dir}° ${metar.wind_speed} kts${metar.wind_gust ? ` (G ${metar.wind_gust})` : ''}`
                     : '—'}
@@ -363,7 +422,7 @@ export function AirportPanel({
               >
                 <CloudRain className="h-4 w-4" />
                 {t('airport.moreWeather')}
-                {showMetarDetails ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                <ChevronDown className={`h-4 w-4 transition-transform ${showMetarDetails ? 'rotate-180' : ''}`} />
               </button>
 
               {showMetarDetails && (
@@ -400,39 +459,68 @@ export function AirportPanel({
               )}
             </div>
 
-            <div className="bg-white dark:bg-zinc-900 border border-border rounded-lg overflow-hidden mt-2 shadow-sm">
-              <button
-                onClick={onToggleStats}
-                className="w-full py-2.5 px-3 flex items-center justify-between hover:bg-muted/50 transition-colors"
-              >
+            {/* LIVE NETWORK TRAFFIC */}
+            <div className="bg-white dark:bg-zinc-900 border border-border rounded-lg overflow-hidden shadow-sm">
+              <div className="w-full py-2.5 px-3 flex items-center justify-between border-b border-border">
                 <div className="flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-muted-foreground">
-                    <path d="M3 3v18h18" />
-                    <path d="M18 17V9" />
-                    <path d="M13 17V5" />
-                    <path d="M8 17v-3" />
-                  </svg>
+                  <Building2 className="h-4 w-4 text-muted-foreground" />
                   <span className="text-[13px] font-bold text-foreground tracking-wide uppercase">{t('airport.statsTitle')}</span>
-                  <span className="bg-muted border border-border text-[9px] font-bold px-2 py-0.5 rounded text-muted-foreground">{t('airport.live')}</span>
+                  <span className="bg-primary/10 text-primary border border-primary/20 text-[9px] font-bold px-2 py-0.5 rounded">{t('airport.live')}</span>
                 </div>
-                {showStats ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-              </button>
-
-              {showStats && (
-                <div className="border-t border-border p-3 space-y-3 bg-muted/10">
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="bg-background rounded-md border border-border p-2.5">
-                      <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">{t('airport.liveDepartures')}</span>
-                      <p className="font-bold text-sm text-foreground mt-1">{departures.length}</p>
-                    </div>
-                    <div className="bg-background rounded-md border border-border p-2.5">
-                      <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">{t('airport.liveArrivals')}</span>
-                      <p className="font-bold text-sm text-foreground mt-1">{arrivals.length}</p>
-                    </div>
-                  </div>
+              </div>
+              
+              <div className="grid grid-cols-2 divide-x divide-border">
+                <div className="p-3 flex flex-col items-center justify-center">
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold text-center">{t('airport.liveDepartures')}</span>
+                  <p className="font-bold text-lg text-foreground mt-1">{departures.length}</p>
                 </div>
-              )}
+                <div className="p-3 flex flex-col items-center justify-center">
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold text-center">{t('airport.liveArrivals')}</span>
+                  <p className="font-bold text-lg text-foreground mt-1">{arrivals.length}</p>
+                </div>
+                <div className="p-3 flex flex-col items-center justify-center border-t border-border">
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold text-center">{t('airport.ground')}</span>
+                  <p className="font-bold text-lg text-foreground mt-1">{ground.length}</p>
+                </div>
+                <div className="p-3 flex flex-col items-center justify-center border-t border-border">
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold text-center">{t('airport.totalPilots')}</span>
+                  <p className="font-bold text-lg text-foreground mt-1">{pilots.length}</p>
+                </div>
+              </div>
             </div>
+
+            {/* AIRPORT DETAILS */}
+            <div className="bg-white dark:bg-zinc-900 border border-border rounded-lg overflow-hidden shadow-sm">
+              <div className="w-full py-2.5 px-3 flex items-center justify-between border-b border-border">
+                <div className="flex items-center gap-2">
+                  <PlaneTakeoff className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-[13px] font-bold text-foreground tracking-wide uppercase">{t('airport.detailsTitle')}</span>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 divide-x divide-y divide-border text-center">
+                <div className="p-2.5 flex flex-col items-center justify-center">
+                  <span className="text-[9px] text-muted-foreground uppercase font-semibold">{t('airport.iata')}</span>
+                  <p className="text-sm font-semibold">{airport.iata || '—'}</p>
+                </div>
+                <div className="p-2.5 flex flex-col items-center justify-center">
+                  <span className="text-[9px] text-muted-foreground uppercase font-semibold">{t('airport.icao')}</span>
+                  <p className="text-sm font-semibold">{airport.icao}</p>
+                </div>
+                <div className="p-2.5 flex flex-col items-center justify-center">
+                  <span className="text-[9px] text-muted-foreground uppercase font-semibold">{t('airport.timezone')}</span>
+                  <p className="text-sm font-semibold text-center leading-tight">
+                    {localTime.tzName}<br/>
+                    <span className="text-xs text-muted-foreground">{localTime.formattedOffset}</span>
+                  </p>
+                </div>
+                <div className="p-2.5 flex flex-col items-center justify-center">
+                  <span className="text-[9px] text-muted-foreground uppercase font-semibold">{t('airport.elevation')}</span>
+                  <p className="text-sm font-semibold">{airport.alt} ft</p>
+                </div>
+              </div>
+            </div>
+
           </div>
         )}
 

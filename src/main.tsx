@@ -18,12 +18,12 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         <BackgroundProvider>
           <SimConnectProvider>
             <SimbriefProvider>
-              <PilotProvider>
-                <FlightLogProvider>
+              <FlightLogProvider>
+                <PilotProvider>
                   <FlightLogger />
                   <App />
-                </FlightLogProvider>
-              </PilotProvider>
+                </PilotProvider>
+              </FlightLogProvider>
             </SimbriefProvider>
           </SimConnectProvider>
         </BackgroundProvider>
