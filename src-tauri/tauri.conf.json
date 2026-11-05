@@ -51,7 +51,7 @@
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEY0MTg4NkZDRjcxNUVBNDMKUldSRDZoWDMvSVlZOU1EVlVHNUppcTZyVTZDU2w3M0lMZUY1UE9sSk52T1BwcGN0b3Z1N0NEQlUK",
       "endpoints": [
-        "https://github.com/5tratz/aervox/releases/latest/download/latest.json"
+        "https://github.com/5tratz/Aervox/releases/latest/download/latest.json"
       ]
     }
   }
