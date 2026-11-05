@@ -2,10 +2,9 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
 import {
-  ArrowLeft, Plane, MapPin, Clock, TrendingUp, Award,
-  CheckCircle2, Navigation, Info, Gauge, ArrowDownToLine, ArrowUpFromLine,
+    ArrowLeft, Plane, Clock, TrendingUp,
+  CheckCircle2, Info, Gauge, ArrowDownToLine, ArrowUpFromLine,
   Hash,
 } from 'lucide-react'
 import { MapContainer, TileLayer, Marker, Polyline, Tooltip, useMap } from 'react-leaflet'
