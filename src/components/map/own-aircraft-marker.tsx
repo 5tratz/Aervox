@@ -3,10 +3,16 @@ import { Marker, Polyline, Tooltip } from 'react-leaflet'
 import L from 'leaflet'
 import { useSimConnect, type SimPosition } from '@/lib/simconnect-context'
 
-interface TrailPoint { lat: number; lon: number; alt: number }
+export interface OwnTrailPoint {
+  lat: number
+  lon: number
+  alt: number
+  spd: number
+  time: number
+}
 
-let globalTrail: TrailPoint[] = []
-let globalLastPoint: TrailPoint | null = null
+let globalTrail: OwnTrailPoint[] = []
+let globalLastPoint: OwnTrailPoint | null = null
 let globalStationarySince: number | null = null
 
 const STATIONARY_RESET_MS = 10_000  // Reset trail after 10s parked
@@ -16,6 +22,10 @@ export function clearTrail(_key: string) {
   globalTrail = []
   globalLastPoint = null
   globalStationarySince = null
+}
+
+export function getOwnTrail() {
+  return globalTrail
 }
 
 function makeIcon(heading: number, size: number, isActive: boolean) {
@@ -38,11 +48,11 @@ function getAltitudeColor(alt: number) {
 }
 
 export function OwnAircraftMarker({
-  labelsMode, iconSize, showTrails, onSelectPilot, isSelected, labelText,
+  labelsMode, iconSize, trailMode, onSelectPilot, isSelected, labelText,
 }: {
   labelsMode: 'off' | 'text'
   iconSize: number
-  showTrails: boolean
+  trailMode: 'self' | 'vatsim' | 'all'
   onSelectPilot: (p: SimPosition) => void
   isSelected: boolean
   flightKey?: number | string | null
@@ -50,13 +60,14 @@ export function OwnAircraftMarker({
 }) {
   const { position } = useSimConnect()
 
-  const [trail, setTrail] = useState<TrailPoint[]>(globalTrail)
+  const [trail, setTrail] = useState<OwnTrailPoint[]>(globalTrail)
   const [hovered, setHovered] = useState(false)
-  const lastAppendRef = useRef<TrailPoint | null>(globalLastPoint)
+  const lastAppendRef = useRef<OwnTrailPoint | null>(globalLastPoint)
 
   const lat = position?.latitude ?? null
   const lon = position?.longitude ?? null
   const alt = position?.altitude ?? 0
+  const spd = position?.ground_speed ?? 0
   const gs = position?.ground_speed ?? 0
   const onGround = position?.on_ground ?? false
 
@@ -90,7 +101,7 @@ export function OwnAircraftMarker({
     if (lat == null || lon == null) return
     const last = lastAppendRef.current
     if (!last || Math.abs(last.lat - lat) + Math.abs(last.lon - lon) > 0.0002) {
-      const newPoint = { lat, lon, alt }
+      const newPoint = { lat, lon, alt, spd, time: Date.now() }
       lastAppendRef.current = newPoint
       globalLastPoint = newPoint
 
@@ -100,7 +111,7 @@ export function OwnAircraftMarker({
         return next
       })
     }
-  }, [lat, lon, alt])
+  }, [lat, lon, alt, spd])
 
   if (lat == null || lon == null || !position) return null
 
@@ -114,9 +125,12 @@ export function OwnAircraftMarker({
     currentPosition.title?.split('(')[0].trim().toUpperCase() ||
     'YOU'
 
+  // Only show own trail if trailMode is 'self' or 'all'
+  const showOwnTrail = trailMode === 'self' || trailMode === 'all'
+
   return (
     <>
-      {showTrails && trail.length > 1 && (
+      {showOwnTrail && trail.length > 1 && (
         <>
           {trail.map((p, i) => {
             if (i === 0) return null

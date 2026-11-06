@@ -1,6 +1,6 @@
 [package]
 name = "aervox"
-version = "0.0.6"
+version = "0.0.7"
 description = "Fly. Manage. Build. Your aviation world."
 authors = ["5tratz"]
 license = ""

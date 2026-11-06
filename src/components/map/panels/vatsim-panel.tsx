@@ -1,12 +1,13 @@
 import { Plane, Navigation, Crosshair } from 'lucide-react'
 import { Polyline } from 'react-leaflet'
-import type { VatsimPilot } from '../use-vatsim-traffic'
+import type { VatsimPilot, VatsimTrackPoint } from '../use-vatsim-traffic'
 import { AIRPORTS } from '@/lib/airports'
 import { getAircraftImage } from '@/lib/aircraft-images'
 import type { SimbriefOFP } from '@/lib/simbrief'
 import { useMemo } from 'react'
 import { cleanAircraftName } from './airport-utils'
 import { useLocale } from '@/lib/locale-context'
+import { FlightChart } from './flight-chart'
 
 function distanceNm(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 3440.065
@@ -85,6 +86,7 @@ export interface FlightInfoPilot {
   heading: number
   departure: string
   arrival: string
+  track?: VatsimTrackPoint[]
 }
 
 export function RouteLayer({ ofp }: { ofp: SimbriefOFP | null }) {
@@ -407,6 +409,15 @@ export function FlightInfoPanel({
             </div>
           </div>
         )}
+
+        {}
+        <div className="pt-2 pb-6">
+          <FlightChart 
+            track={pilot.track || []} 
+            currentAlt={pilot.altitude} 
+            currentSpd={pilot.groundspeed} 
+          />
+        </div>
       </div>
     </div>
   )
@@ -423,6 +434,7 @@ export function VatsimPanel({ pilot, onFollow, isFollowing }: { pilot: VatsimPil
     heading: pilot.heading,
     departure: pilot.departure,
     arrival: pilot.arrival,
+    track: pilot.track,
   }
   return <FlightInfoPanel source="VATSIM" pilot={adapted} onFollow={onFollow} isFollowing={isFollowing} />
 }

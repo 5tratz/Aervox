@@ -418,9 +418,9 @@ export function ProfilePage() {
               <div className="w-full">
                 {ofp ? (
                   <div className="space-y-2">
-                    <Label className="text-muted-foreground ml-1">
-                      Currently Imported Flight Plan
-                    </Label>
+					<Label className="text-muted-foreground ml-1">
+					  {t('profile.currentFlightPlan')}
+					</Label>
 
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-xl bg-muted/20 border border-border/50">
                       <div className="flex flex-col sm:flex-row sm:items-center gap-6 w-full">

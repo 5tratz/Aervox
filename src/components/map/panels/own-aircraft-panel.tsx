@@ -3,6 +3,7 @@ import { FlightInfoPanel, type FlightInfoPilot } from './vatsim-panel'
 import type { SimbriefOFP } from '@/lib/simbrief'
 import { usePilot } from '@/lib/pilot-context'
 import { useLocale } from '@/lib/locale-context'
+import { getOwnTrail } from '../own-aircraft-marker'
 
 function cleanAircraftName(title?: string | null) {
   if (!title) return 'AIRCRAFT'
@@ -28,6 +29,8 @@ export function OwnAircraftPanel({
 }) {
   const { t } = useLocale()
   const { pilot: profile } = usePilot()
+  
+  const ownTrail = getOwnTrail()
 
   const pilot: FlightInfoPilot = {
     callsign: profile.callsign || pos.callsign || t('airport.you'),
@@ -39,6 +42,7 @@ export function OwnAircraftPanel({
     heading: pos.heading,
     departure: '',
     arrival: '',
+    track: ownTrail, 
   }
 
   return (

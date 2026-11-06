@@ -73,8 +73,7 @@ const DEFAULT_FLIGHT_SETTINGS = {
   aircraftLabelsMode: 'off' as 'off' | 'text',
   iconSize: 30,
   showSimbriefRoute: false,
-  showTrails: false,
-  showOwnTrail: true,
+  trailMode: 'self' as 'self' | 'vatsim' | 'all', // 👈 Changed to trailMode
 }
 
 // Zoom level used for every "locate" action so they all feel identical
@@ -517,7 +516,7 @@ export function LiveMap() {
               pilots={pilots}
               labelMode={flightSettings.aircraftLabelsMode}
               iconSize={flightSettings.iconSize}
-              showTrails={flightSettings.showTrails}
+              trailMode={flightSettings.trailMode}
               onVisibleCountChange={() => {}}
               onSelectPilot={onSelectVatsim}
               selectedCid={activeCid}
@@ -527,7 +526,7 @@ export function LiveMap() {
           <OwnAircraftMarker
             labelsMode={flightSettings.aircraftLabelsMode}
             iconSize={flightSettings.iconSize}
-            showTrails={flightSettings.showOwnTrail}
+            trailMode={flightSettings.trailMode}
             onSelectPilot={onSelectOwn}
             isSelected={selectedEntity?.type === 'own' && !isFollowing}
             flightKey={lastFlightStarted?.timestamp ?? null}

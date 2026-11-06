@@ -7,7 +7,7 @@ interface Props {
   pilots: VatsimPilot[]
   labelMode: 'off' | 'text'
   iconSize: number
-  showTrails: boolean
+  trailMode: 'self' | 'vatsim' | 'all'
   onVisibleCountChange: (count: number) => void
   onSelectPilot: (p: VatsimPilot) => void
   selectedCid?: number | null
@@ -31,7 +31,7 @@ function makeIcon(heading: number, size: number, isActive: boolean) {
 }
 
 export function VatsimLayer({
-  pilots, labelMode, iconSize, showTrails, onVisibleCountChange, onSelectPilot, selectedCid
+  pilots, labelMode, iconSize, trailMode, onVisibleCountChange, onSelectPilot, selectedCid
 }: Props) {
   const map = useMap()
   const markersRef = useRef<Map<number, L.Marker>>(new Map())
@@ -61,7 +61,6 @@ export function VatsimLayer({
   }, [map])
 
   const visible = useMemo(() => {
-    // No zoom cap. Just get everything inside the current viewport bounds.
     const inView: VatsimPilot[] = []
     for (const p of pilots) {
       if (viewport.bounds.contains([p.lat, p.lon])) {
@@ -114,32 +113,27 @@ export function VatsimLayer({
     return () => { group.remove() }
   }, [visible, labelMode, iconSize, hoveredCid, selectedCid, map, onSelectPilot, showLabels])
 
+  // Live Trail Logic: Only draws when a plane is selected AND trailMode allows it
+  const activePilot = pilots.find(p => p.cid === selectedCid)
+  const showVatsimTrail = trailMode === 'vatsim' || trailMode === 'all'
+  
   return (
     <>
-      {showTrails && visible.map(p => {
-        // Trail needs at least 2 points to draw a line
-        if (!p.track || p.track.length < 2) return null
-
-        // Ensure the current position is always the last point
-        const positions: [number, number][] = [
-          ...p.track,
-          [p.lat, p.lon],
-        ]
-
-        const isSelected = selectedCid === p.cid
-        return (
-          <Polyline
-            key={`trail-${p.cid}`}
-            positions={positions}
-            pathOptions={{
-              color: isSelected ? '#a855f7' : '#22c55e',
-              weight: isSelected ? 3 : 2,
-              opacity: isSelected ? 1 : 0.8,
-              dashArray: isSelected ? '8, 8' : '4, 6'
-            }}
-          />
-        )
-      })}
+      {showVatsimTrail && activePilot && activePilot.track && activePilot.track.length > 1 && (
+        <Polyline
+          positions={[
+            ...activePilot.track.map(p => [p.lat, p.lon] as [number, number]), 
+            [activePilot.lat, activePilot.lon]
+          ]}
+          pathOptions={{ 
+            color: '#3b82f6', // Flightradar24 blue
+            weight: 3, 
+            opacity: 0.85,
+            lineCap: 'round',
+            lineJoin: 'round'
+          }}
+        />
+      )}
     </>
   )
 }

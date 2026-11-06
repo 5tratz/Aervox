@@ -2,7 +2,7 @@
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Aervox",
   "mainBinaryName": "Aervox",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "identifier": "com.aervox.app",
   "build": {
     "frontendDist": "../dist",
@@ -14,8 +14,8 @@
     "windows": [
       {
         "title": "Aervox",
-        "width": 1640,
-        "height": 1215,
+        "width": 1765,
+        "height": 1305,
         "minWidth": 960,
         "minHeight": 600,
         "resizable": true,

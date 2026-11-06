@@ -30,6 +30,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { MapClock } from '@/components/map/map-clock'
 
 function isTauriRuntime(): boolean {
   return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
@@ -138,8 +139,19 @@ function Shell() {
       <AppSidebar />
       <div className="flex flex-1 flex-col min-w-0">
         
-        <header className="relative z-50 flex h-16 shrink-0 items-center justify-end border-b px-6 bg-background">
-          <div className="flex items-center gap-2">
+        {/* Changed layout to perfectly center the clock */}
+        <header className="relative z-50 flex h-16 shrink-0 items-center justify-between border-b px-6 bg-background">
+          
+          {/* Left spacer */}
+          <div className="flex-1" />
+
+          {/* Center Clock */}
+          <div className="flex-1 flex justify-center">
+            <MapClock />
+          </div>
+
+          {/* Right Side Icons */}
+          <div className="flex-1 flex items-center justify-end gap-2">
             <ConnectionHeartbeat />
             <TooltipProvider>
               <Tooltip>

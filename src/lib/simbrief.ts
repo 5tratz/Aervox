@@ -134,6 +134,14 @@ export function extractRouteWaypoints(ofp: SimbriefOFP): SimbriefWaypoint[] {
 export function formatOFPText(ofp: SimbriefOFP): string {
   const lines: string[] = []
 
+  // Helper to convert unix timestamps (seconds) to readable Zulu time
+  const formatUnixTime = (unixStr?: string) => {
+    if (!unixStr || unixStr === '0') return '---'
+    const date = new Date(parseInt(unixStr, 10) * 1000)
+    if (isNaN(date.getTime())) return unixStr
+    return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }) + 'Z'
+  }
+
   lines.push('═══════════════════════════════════════════════════════════')
   lines.push('                    OPERATIONAL FLIGHT PLAN                ')
   lines.push('═══════════════════════════════════════════════════════════')
@@ -174,10 +182,23 @@ export function formatOFPText(ofp: SimbriefOFP): string {
   lines.push(' TIMES')
   lines.push('───────────────────────────────────────────────────────────')
   if (ofp.times?.sched_out) {
-    lines.push(`SCHED OUT:  ${ofp.times.sched_out}`)
+    lines.push(`SCHED OUT:  ${formatUnixTime(ofp.times.sched_out)}`)
   }
   if (ofp.times?.sched_in) {
-    lines.push(`SCHED IN:   ${ofp.times.sched_in}`)
+    lines.push(`SCHED IN:   ${formatUnixTime(ofp.times.sched_in)}`)
+  }
+  // Optional: Format the actual and estimated times too if they exist
+  if (ofp.times?.actual_off) {
+    lines.push(`ACTUAL OFF: ${formatUnixTime(ofp.times.actual_off)}`)
+  }
+  if (ofp.times?.actual_on) {
+    lines.push(`ACTUAL ON:  ${formatUnixTime(ofp.times.actual_on)}`)
+  }
+  if (ofp.times?.est_off) {
+    lines.push(`EST OFF:    ${formatUnixTime(ofp.times.est_off)}`)
+  }
+  if (ofp.times?.est_in) {
+    lines.push(`EST IN:     ${formatUnixTime(ofp.times.est_in)}`)
   }
   lines.push('')
 

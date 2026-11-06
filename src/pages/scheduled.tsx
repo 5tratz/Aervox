@@ -91,7 +91,7 @@ export function ScheduledPage() {
     if (status === 'boarding' || mins <= 30) {
       return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 whitespace-nowrap"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"/> {t('scheduled.statusBoarding')}</span>
     }
-    return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-muted text-muted-foreground border border-border whitespace-nowrap"><Clock className="w-2.5 h-2.5"/> {t('scheduled.statusIn')} {mins}m</span>
+    return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-muted text-muted-foreground border border-border whitespace-nowrap"><Clock className="w-2.5 h-2.5"/> {t('scheduled.statusIn')} {formatDuration(mins)}</span>
   }
 
   useEffect(() => {

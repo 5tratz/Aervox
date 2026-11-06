@@ -41,7 +41,19 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const setLanguage = async (language: Language) => {
-    const next = { ...prefs, language }
+    let nextCurrency = prefs.currency
+
+    // Automatically switch currency based on language
+    if (language === 'fr' || language === 'de' || language === 'es') {
+      nextCurrency = 'EUR'
+    } else if (language === 'en') {
+      // If they switch back to English and are currently on EUR, default to GBP
+      if (prefs.currency === 'EUR') {
+        nextCurrency = 'GBP'
+      }
+    }
+
+    const next = { ...prefs, language, currency: nextCurrency }
     setPrefs(next)
     await saveJson('settings/locale.json', next)
   }

@@ -7,8 +7,7 @@ export interface FlightSettings {
   aircraftLabelsMode: 'off' | 'text'
   iconSize: number
   showSimbriefRoute: boolean
-  showTrails: boolean
-  showOwnTrail: boolean
+  trailMode: 'self' | 'vatsim' | 'all' 
 }
 
 export function FlightsPanel({
@@ -52,7 +51,28 @@ export function FlightsPanel({
 
       <div className="h-px bg-border" />
 
-      {/* 3. Aircraft Icon Size */}
+      {/* 3. Aircraft Trails */}
+      <div className="space-y-3">
+        <h3 className="font-semibold uppercase text-xs tracking-wider flex items-center gap-2">
+          <Navigation className="h-4 w-4" /> {t('map.flightsOwnTrail')}
+        </h3>
+        <p className="text-xs text-muted-foreground">{t('map.flightsOwnTrailDesc')}</p>
+        <div className="flex rounded-md overflow-hidden border border-border">
+          <button onClick={() => onChange('trailMode', 'self')} className={`flex-1 py-1.5 text-xs font-semibold ${settings.trailMode === 'self' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}>
+            {t('common.self') || 'Self'}
+          </button>
+          <button onClick={() => onChange('trailMode', 'vatsim')} className={`flex-1 py-1.5 text-xs font-semibold border-l border-border ${settings.trailMode === 'vatsim' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}>
+            VATSIM
+          </button>
+          <button onClick={() => onChange('trailMode', 'all')} className={`flex-1 py-1.5 text-xs font-semibold border-l border-border ${settings.trailMode === 'all' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}>
+            {t('common.all')}
+          </button>
+        </div>
+      </div>
+
+      <div className="h-px bg-border" />
+
+      {/* 4. Aircraft Icon Size */}
       <div className="space-y-3">
         <h3 className="font-semibold uppercase text-xs tracking-wider">{t('map.flightsIconSize')}</h3>
         <div className="flex items-center gap-3">
@@ -64,7 +84,7 @@ export function FlightsPanel({
 
       <div className="h-px bg-border" />
 
-      {/* 4. SimBrief Route Line */}
+      {/* 5. SimBrief Route Line */}
       <div className="space-y-3">
         <h3 className="font-semibold uppercase text-xs tracking-wider flex items-center gap-2">
           <Route className="h-4 w-4" /> {t('map.flightsRoute')}
@@ -73,34 +93,6 @@ export function FlightsPanel({
         <div className="flex rounded-md overflow-hidden border border-border">
           <button onClick={() => onChange('showSimbriefRoute', true)} className={`flex-1 py-1.5 text-xs font-semibold ${settings.showSimbriefRoute ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}>{t('common.on')}</button>
           <button onClick={() => onChange('showSimbriefRoute', false)} className={`flex-1 py-1.5 text-xs font-semibold border-l border-border ${!settings.showSimbriefRoute ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}>{t('common.off')}</button>
-        </div>
-      </div>
-
-      <div className="h-px bg-border" />
-
-      {/* 5. Flight Trails (VATSIM) */}
-      <div className="space-y-3">
-        <h3 className="font-semibold uppercase text-xs tracking-wider flex items-center gap-2">
-          <Route className="h-4 w-4" /> {t('map.flightsTrails')}
-        </h3>
-        <p className="text-xs text-muted-foreground">{t('map.flightsTrailsDesc')}</p>
-        <div className="flex rounded-md overflow-hidden border border-border">
-          <button onClick={() => onChange('showTrails', true)} className={`flex-1 py-1.5 text-xs font-semibold ${settings.showTrails ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}>{t('common.on')}</button>
-          <button onClick={() => onChange('showTrails', false)} className={`flex-1 py-1.5 text-xs font-semibold border-l border-border ${!settings.showTrails ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}>{t('common.off')}</button>
-        </div>
-      </div>
-
-      <div className="h-px bg-border" />
-
-      {/* 6. Own Aircraft Trail */}
-      <div className="space-y-3">
-        <h3 className="font-semibold uppercase text-xs tracking-wider flex items-center gap-2">
-          <Navigation className="h-4 w-4" /> {t('map.flightsOwnTrail')}
-        </h3>
-        <p className="text-xs text-muted-foreground">{t('map.flightsOwnTrailDesc')}</p>
-        <div className="flex rounded-md overflow-hidden border border-border">
-          <button onClick={() => onChange('showOwnTrail', true)} className={`flex-1 py-1.5 text-xs font-semibold ${settings.showOwnTrail ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}>{t('common.on')}</button>
-          <button onClick={() => onChange('showOwnTrail', false)} className={`flex-1 py-1.5 text-xs font-semibold border-l border-border ${!settings.showOwnTrail ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}>{t('common.off')}</button>
         </div>
       </div>
 

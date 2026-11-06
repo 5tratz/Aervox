@@ -5,6 +5,14 @@ const POLL_MS = 15_000
 const RETRY_MS = 5_000
 const MAX_TRACK_POINTS = 100 // ~25 min of history per VATSIM pilot
 
+export interface VatsimTrackPoint {
+  lat: number
+  lon: number
+  alt: number
+  spd: number
+  time: number
+}
+
 export interface VatsimPilot {
   cid: number
   callsign: string
@@ -16,7 +24,7 @@ export interface VatsimPilot {
   aircraft: string
   departure: string
   arrival: string
-  track: [number, number][]
+  track: VatsimTrackPoint[]
 }
 
 interface RawVatsim {
@@ -28,7 +36,7 @@ interface RawVatsim {
     altitude: number
     groundspeed: number
     heading: number
-    track?: [number, number][]
+    track?: any[]
     flight_plan?: {
       aircraft?: string
       departure?: string
@@ -40,7 +48,7 @@ interface RawVatsim {
 export function useVatsimTraffic(enabled: boolean) {
   const [pilots, setPilots] = useState<VatsimPilot[]>([])
   const abortRef = useRef<AbortController | null>(null)
-  const trackHistoryRef = useRef<Map<number, [number, number][]>>(new Map())
+  const trackHistoryRef = useRef<Map<number, VatsimTrackPoint[]>>(new Map())
 
   useEffect(() => {
     if (!enabled) {
@@ -80,16 +88,21 @@ export function useVatsimTraffic(enabled: boolean) {
           const next: VatsimPilot[] = data.pilots.map((p) => {
             seenCids.add(p.cid)
 
-            let track: [number, number][] = p.track ? [...p.track] : []
-
             const history = trackHistoryRef.current.get(p.cid) ?? []
             const lastHistoryPoint = history[history.length - 1]
-            const currentPoint: [number, number] = [p.latitude, p.longitude]
+            
+            const currentPoint: VatsimTrackPoint = { 
+              lat: p.latitude, 
+              lon: p.longitude, 
+              alt: p.altitude, 
+              spd: p.groundspeed, 
+              time: Date.now() 
+            }
 
             const hasMoved =
               !lastHistoryPoint ||
-              Math.abs(lastHistoryPoint[0] - p.latitude) > 0.0005 ||
-              Math.abs(lastHistoryPoint[1] - p.longitude) > 0.0005
+              Math.abs(lastHistoryPoint.lat - p.latitude) > 0.0005 ||
+              Math.abs(lastHistoryPoint.lon - p.longitude) > 0.0005
 
             if (hasMoved) {
               history.push(currentPoint)
@@ -98,8 +111,6 @@ export function useVatsimTraffic(enabled: boolean) {
               }
               trackHistoryRef.current.set(p.cid, history)
             }
-
-            const finalTrack = history.length > 0 ? [...history] : track
 
             return {
               cid: p.cid,
@@ -112,7 +123,7 @@ export function useVatsimTraffic(enabled: boolean) {
               aircraft: p.flight_plan?.aircraft ?? '',
               departure: p.flight_plan?.departure ?? '',
               arrival: p.flight_plan?.arrival ?? '',
-              track: finalTrack,
+              track: history,
             }
           })
 
