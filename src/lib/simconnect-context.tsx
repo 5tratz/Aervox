@@ -12,6 +12,7 @@ export interface SimPosition {
   title: string
   callsign: string
   timestamp: number
+  flight_start?: number | null 
 
   light_landing?: boolean
   light_taxi?: boolean

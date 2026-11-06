@@ -311,6 +311,7 @@ struct SimData {
     latitude: f64, longitude: f64, altitude: f64, ground_speed: f64,
     heading: f64, on_ground: bool, title: String, timestamp: u64,
     callsign: String,
+	flight_start: Option<u64>,
 
     light_landing: bool,
     light_taxi: bool,
@@ -660,6 +661,7 @@ fn simconnect_worker(app: AppHandle, stop: Arc<AtomicBool>) {
                                         ground_speed: aircraft.ground_speed, heading: aircraft.heading,
                                         on_ground: aircraft.on_ground, title: display_title, timestamp: ts,
                                         callsign: raw_callsign.clone(),
+										flight_start: flight_start,
 
                                         light_landing: sys.as_ref().map(|s| s.light_landing).unwrap_or(false),
                                         light_taxi: sys.as_ref().map(|s| s.light_taxi).unwrap_or(false),

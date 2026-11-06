@@ -4,7 +4,7 @@ import type { VatsimPilot, VatsimTrackPoint } from '../use-vatsim-traffic'
 import { AIRPORTS } from '@/lib/airports'
 import { getAircraftImage } from '@/lib/aircraft-images'
 import type { SimbriefOFP } from '@/lib/simbrief'
-import { useMemo } from 'react'
+import { useMemo, useEffect, useState } from 'react'
 import { cleanAircraftName } from './airport-utils'
 import { useLocale } from '@/lib/locale-context'
 import { FlightChart } from './flight-chart'
@@ -112,7 +112,7 @@ export function RouteLayer({ ofp }: { ofp: SimbriefOFP | null }) {
 }
 
 export function FlightInfoPanel({
-  pilot, source, ofp, flightNumber, onFollow, isFollowing
+  pilot, source, ofp, flightNumber, onFollow, isFollowing, startTime
 }: {
   pilot: FlightInfoPilot
   source: 'SIM' | 'VATSIM'
@@ -120,12 +120,20 @@ export function FlightInfoPanel({
   flightNumber?: string
   onFollow?: () => void
   isFollowing?: boolean
+  startTime?: number 
 }) {
   const { t } = useLocale()
   const isOwn = source === 'SIM'
   const depIcao = ofp?.origin?.icao_code || pilot.departure
   const arrIcao = ofp?.destination?.icao_code || pilot.arrival
   const altIcao = ofp?.alternate?.icao_code
+
+  const [now, setNow] = useState(Date.now())
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(timer)
+  }, [])
 
   const arr = AIRPORTS.find(a => a.icao === arrIcao || a.iata === arrIcao)
   const dep = AIRPORTS.find(a => a.icao === depIcao || a.iata === depIcao)
@@ -161,37 +169,53 @@ export function FlightInfoPanel({
   const depDay = isOwn ? getDayOfWeek(schedOutDate) : ''
   const arrDay = isOwn ? getDayOfWeek(schedInDate) : ''
 
-  const enroute = isOwn ? formatDuration(ofp?.times?.est_time_enroute) : '—'
+  // 1. Calculate the ticking stopwatch using only the reliable startTime prop
+  let liveDuration = '0h 00m 00s'
+  
+  if (startTime && typeof startTime === 'number' && startTime > 1000000000000) {
+    const diffMs = now - startTime
+    if (diffMs > 0 && diffMs < 86400000) { 
+      const h = Math.floor(diffMs / 3600000)
+      const m = Math.floor((diffMs % 3600000) / 60000)
+      const s = Math.floor((diffMs % 60000) / 1000)
+      liveDuration = `${h}h ${m.toString().padStart(2, '0')}m ${s.toString().padStart(2, '0')}s`
+    }
+  }
+
+  // 2. Calculate the live countdown remaining
+  let timeRemaining = '—'
+  if (totalDistance > 0 && pilot.groundspeed > 50) {
+    const minsRemaining = (distanceToDest / pilot.groundspeed) * 60
+    const hRem = Math.floor(minsRemaining / 60)
+    const mRem = Math.floor(minsRemaining % 60)
+    timeRemaining = `${hRem}h ${mRem.toString().padStart(2, '0')}m`
+  } else if (isOwn && ofp?.times?.est_time_enroute) {
+    timeRemaining = formatDuration(ofp.times.est_time_enroute)
+  }
 
   let calcDepActual = '—'
   let calcArrEst = '—'
-  let calcEnroute = '—'
 
   if (!isOwn && totalDistance > 0 && pilot.groundspeed > 50) {
     const distanceFlown = totalDistance - distanceToDest
     const timeFlownMins = (distanceFlown / pilot.groundspeed) * 60
     const timeRemainingMins = (distanceToDest / pilot.groundspeed) * 60
-    const totalMins = timeFlownMins + timeRemainingMins
 
-    const now = Date.now()
     calcDepActual = formatTimeFromMs(now - timeFlownMins * 60 * 1000)
     calcArrEst = formatTimeFromMs(now + timeRemainingMins * 60 * 1000)
-
-    const h = Math.floor(totalMins / 60)
-    const m = Math.floor(totalMins % 60)
-    calcEnroute = `${h}h ${m.toString().padStart(2, '0')}m`
   }
 
   const displayDepActual = isOwn ? depActualLocal : calcDepActual
   const displayArrEst = isOwn ? arrEstLocal : calcArrEst
-  const displayEnroute = isOwn ? enroute : calcEnroute
+  const displayEnroute = timeRemaining
 
-  const cruiseAlt = isOwn && ofp?.general?.initial_altitude
+  const cruiseAlt = ofp?.general?.initial_altitude
     ? `${parseInt(ofp.general.initial_altitude, 10).toLocaleString()} ft`
     : '—'
-  const cruiseTas = isOwn && ofp?.general?.cruise_tas ? `${ofp.general.cruise_tas} kts` : '—'
-  const rampFuel = isOwn && ofp?.fuel?.plan_ramp ? `${parseInt(ofp.fuel.plan_ramp, 10).toLocaleString()} kg` : '—'
-  const payload = isOwn && ofp?.weights?.payload ? `${parseInt(ofp.weights.payload, 10).toLocaleString()} kg` : '—'
+  const cruiseTas = ofp?.general?.cruise_tas ? `${ofp.general.cruise_tas} kts` : '—'
+  const rampFuel = ofp?.fuel?.plan_ramp ? `${parseInt(ofp.fuel.plan_ramp, 10).toLocaleString()} kg` : '—'
+  const payload = ofp?.weights?.payload ? `${parseInt(ofp.weights.payload, 10).toLocaleString()} kg` : '—'
+  
   const registration = ofp?.aircraft?.reg
 
   const depFullName = dep
@@ -377,7 +401,7 @@ export function FlightInfoPanel({
             </div>
             <div className="flex items-center justify-between text-sm border-t border-border/50 pt-2">
               <span className="text-muted-foreground">{t('flightinfo.flightDuration')}</span>
-              <span className="font-mono text-xs font-semibold">{enroute}</span>
+              <span className="font-mono text-xs font-semibold">{liveDuration}</span>
             </div>
           </div>
         ) : (

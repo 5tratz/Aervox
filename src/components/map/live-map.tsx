@@ -73,10 +73,9 @@ const DEFAULT_FLIGHT_SETTINGS = {
   aircraftLabelsMode: 'off' as 'off' | 'text',
   iconSize: 30,
   showSimbriefRoute: false,
-  trailMode: 'self' as 'self' | 'vatsim' | 'all', // 👈 Changed to trailMode
+  trailMode: 'self' as 'self' | 'vatsim' | 'all',
 }
 
-// Zoom level used for every "locate" action so they all feel identical
 const LOCATE_ZOOM = 13
 
 type SelectedEntity =
@@ -585,10 +584,16 @@ export function LiveMap() {
 
         {activeTab === 'own' && (selectedEntity?.type === 'own' || isFollowing) && (
           <OwnAircraftPanel
+            key={lastFlightStarted?.timestamp || 'menu'} 
             pos={selectedEntity?.type === 'own' ? selectedEntity.data : position!}
             ofp={ofp}
             onFollow={handleFollowOwn}
             isFollowing={isFollowingOwn}
+            startTime={(() => {
+              const ts = lastFlightStarted?.timestamp || position?.timestamp
+              if (!ts) return undefined
+              return ts < 100000000000 ? ts * 1000 : ts
+            })()}
           />
         )}
       </SidePanel>

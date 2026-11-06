@@ -21,11 +21,13 @@ export function OwnAircraftPanel({
   ofp,
   onFollow,
   isFollowing,
+  startTime, 
 }: {
   pos: SimPosition
   ofp?: SimbriefOFP | null
   onFollow?: () => void
   isFollowing?: boolean
+  startTime?: number  
 }) {
   const { t } = useLocale()
   const { pilot: profile } = usePilot()
@@ -53,6 +55,7 @@ export function OwnAircraftPanel({
       flightNumber={profile.flightNumber}
       onFollow={onFollow}
       isFollowing={isFollowing}
+      startTime={startTime} 
     />
   )
 }

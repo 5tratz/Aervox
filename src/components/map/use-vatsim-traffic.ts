@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 
-const VATSIM_URL = 'https://data.vatsim.net/v3/vatsim-data.json'
-const POLL_MS = 15_000
+const VATSIM_URL = 'https://data.vatsim.net/v3/vatsim-data.json?interpolate=true'
+const POLL_MS = 10_000 
 const RETRY_MS = 5_000
 const MAX_TRACK_POINTS = 100 // ~25 min of history per VATSIM pilot
 
