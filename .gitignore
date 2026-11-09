@@ -41,3 +41,7 @@ Cargo.lock
 
 # TypeScript build info
 *.tsbuildinfo
+
+# License signing material — never commit these
+*.pem
+.aervox/

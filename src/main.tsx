@@ -8,6 +8,7 @@ import { BackgroundProvider } from '@/lib/background-context'
 import { SimConnectProvider } from '@/lib/simconnect-context'
 import { SimbriefProvider } from '@/lib/simbrief-context'
 import { PilotProvider } from '@/lib/pilot-context'
+import { LicenseProvider } from '@/lib/license-context'
 import { FlightLogProvider } from '@/lib/flight-log-context'
 import { FlightLogger } from '@/lib/flight-logger'
 
@@ -20,8 +21,10 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             <SimbriefProvider>
               <FlightLogProvider>
                 <PilotProvider>
-                  <FlightLogger />
-                  <App />
+                  <LicenseProvider>
+                    <FlightLogger />
+                    <App />
+                  </LicenseProvider>
                 </PilotProvider>
               </FlightLogProvider>
             </SimbriefProvider>

@@ -16,7 +16,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 
-type AircraftFamily = 'all' | 'A320' | 'B737' | 'Widebody' | 'Turboprop' | 'Regional' | 'Other'
+type AircraftFamily = 'all' | LiveFlight['aircraftFamily']
 
 function formatDuration(mins: number) {
   const h = Math.floor(mins / 60)
@@ -73,11 +73,18 @@ export function ScheduledPage() {
   const [selected, setSelected] = useState<LiveFlight | null>(null)
 
   const FAMILY_LABELS: Record<Exclude<AircraftFamily, 'all'>, string> = {
+    A220: 'Airbus A220',
     A320: t('scheduled.familyA320'),
+    A330: 'Airbus A330',
+    A350: 'Airbus A350',
+    A380: 'Airbus A380',
     B737: t('scheduled.familyB737'),
-    Widebody: t('scheduled.familyWidebody'),
+    B747: 'Boeing 747',
+    B777: 'Boeing 777',
+    B787: 'Boeing 787',
+    'E-Jet': 'Embraer E-Jet',
+    CRJ: 'Bombardier CRJ',
     Turboprop: t('scheduled.familyTurboprop'),
-    Regional: t('scheduled.familyRegional'),
     Other: t('scheduled.familyOther'),
   }
 

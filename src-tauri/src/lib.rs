@@ -1,4 +1,4 @@
-use ed25519_dalek::{Signature, Verifier, VerifyingKey};
+mod license;
 use std::fs;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -18,58 +18,6 @@ fn get_machine_info() -> Result<MachineInfo, String> {
         os: std::env::consts::OS.to_string(),
         arch: std::env::consts::ARCH.to_string(),
     })
-}
-
-#[derive(serde::Serialize)]
-struct VerifyResult { valid: bool, payload: Option<serde_json::Value>, reason: Option<String> }
-
-#[tauri::command]
-fn verify_license(license_b64: String, public_key_hex: String) -> VerifyResult {
-    let decoded = match base64::Engine::decode(&base64::engine::general_purpose::STANDARD, license_b64.as_bytes()) {
-        Ok(v) => v,
-        Err(e) => return VerifyResult { valid: false, payload: None, reason: Some(format!("bad base64: {}", e)) },
-    };
-    let text = match String::from_utf8(decoded) {
-        Ok(s) => s, Err(_) => return VerifyResult { valid: false, payload: None, reason: Some("invalid utf8".into()) },
-    };
-    let (payload_json, sig_hex) = match text.rsplit_once('.') {
-        Some((p, s)) => (p, s), None => return VerifyResult { valid: false, payload: None, reason: Some("malformed license".into()) },
-    };
-    let pk_bytes = match hex::decode(&public_key_hex) {
-        Ok(v) => v, Err(e) => return VerifyResult { valid: false, payload: None, reason: Some(format!("bad pubkey hex: {}", e)) },
-    };
-    let pk_arr: [u8; 32] = if pk_bytes.len() == 32 {
-        let mut arr = [0u8; 32]; arr.copy_from_slice(&pk_bytes); arr
-    } else { return VerifyResult { valid: false, payload: None, reason: Some("pubkey wrong length".into()) }; };
-    let verifying_key = match VerifyingKey::from_bytes(&pk_arr) {
-        Ok(k) => k, Err(e) => return VerifyResult { valid: false, payload: None, reason: Some(format!("pubkey invalid: {}", e)) },
-    };
-    let sig_bytes = match hex::decode(sig_hex) {
-        Ok(v) => v, Err(e) => return VerifyResult { valid: false, payload: None, reason: Some(format!("bad sig hex: {}", e)) },
-    };
-    let sig = match Signature::from_slice(&sig_bytes) {
-        Ok(s) => s, Err(e) => return VerifyResult { valid: false, payload: None, reason: Some(format!("sig invalid: {}", e)) },
-    };
-    if verifying_key.verify(payload_json.as_bytes(), &sig).is_err() {
-        return VerifyResult { valid: false, payload: None, reason: Some("signature mismatch".into()) };
-    }
-    let payload: serde_json::Value = match serde_json::from_str(payload_json) {
-        Ok(p) => p, Err(e) => return VerifyResult { valid: false, payload: None, reason: Some(format!("payload json invalid: {}", e)) },
-    };
-    VerifyResult { valid: true, payload: Some(payload), reason: None }
-}
-
-#[tauri::command]
-fn read_license_file(path: String) -> Result<String, String> {
-    let p = PathBuf::from(&path);
-    fs::read_to_string(&p).map_err(|e| format!("read failed: {}", e))
-}
-
-#[tauri::command]
-fn write_license_file(path: String, content: String) -> Result<(), String> {
-    let p = PathBuf::from(&path);
-    if let Some(parent) = p.parent() { let _ = fs::create_dir_all(parent); }
-    fs::write(&p, content).map_err(|e| format!("write failed: {}", e))
 }
 
 #[tauri::command]
@@ -921,9 +869,11 @@ pub fn run() {
       Ok(())
     })
 	.invoke_handler(tauri::generate_handler![
-	  get_machine_info, verify_license, read_license_file, write_license_file,
+	  get_machine_info,
 	  hash_password, verify_password, start_simconnect, stop_simconnect,
-	  save_packages_path, fetch_network_traffic, get_current_aircraft, fetch_metar
+	  save_packages_path, fetch_network_traffic, get_current_aircraft, fetch_metar,
+	  license::license_machine_code, license::license_status,
+	  license::license_activate, license::license_clear
 	])
     .run(tauri::generate_context!())
     .expect("error while building tauri application");

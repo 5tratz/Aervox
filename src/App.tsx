@@ -19,6 +19,8 @@ import { useLocale } from '@/lib/locale-context'
 import { useBackground } from '@/lib/background-context'
 import { useSimConnect } from '@/lib/simconnect-context'
 import { usePilot } from '@/lib/pilot-context'
+import { useLicense } from '@/lib/license-context'
+import { LicenseGate } from '@/components/license-gate'
 import { AcceptedFlightProvider } from '@/lib/accepted-flight-context'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import {
@@ -69,6 +71,7 @@ function ConnectionHeartbeat() {
 function Shell() {
   const { t } = useLocale()
   const { isLoggedIn } = usePilot()
+  const { ready: licenseReady, locked } = useLicense()
   const { bgUrl } = useBackground()
   const location = useLocation()
   const isDashboard = location.pathname === '/'
@@ -132,6 +135,15 @@ function Shell() {
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     )
+  }
+
+  // Nothing past this point renders without a valid license.
+  if (!licenseReady) {
+    return <AppLoadingScreen />
+  }
+
+  if (locked) {
+    return <LicenseGate />
   }
 
   return (

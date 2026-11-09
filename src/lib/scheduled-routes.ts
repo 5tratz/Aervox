@@ -10,7 +10,7 @@ export interface ScheduledRoute {
   durationMin: number
   daysOfWeek: number[]
   network: 'short' | 'long'
-  aircraftFamily: 'A320' | 'B737' | 'Widebody' | 'Turboprop' | 'Regional' | 'Other'
+  aircraftFamily: 'A220' | 'A320' | 'A330' | 'A350' | 'A380' | 'B737' | 'B747' | 'B777' | 'B787' | 'E-Jet' | 'CRJ' | 'Turboprop' | 'Other'
 }
 
 export const SCHEDULED_ROUTES: ScheduledRoute[] = [
@@ -22,13 +22,13 @@ export const SCHEDULED_ROUTES: ScheduledRoute[] = [
   { id: 'ba105', flightNumber: 'BA326', airline: 'British Airways', airlineCode: 'BA', departure: 'EGLL', arrival: 'LSZH', aircraft: 'A320', departureTime: '17:20', durationMin: 95, daysOfWeek: [0,1,2,3,4,5,6], network: 'short', aircraftFamily: 'A320' },
   
   // --- British Airways (Long Haul) ---
-  { id: 'ba106', flightNumber: 'BA117', airline: 'British Airways', airlineCode: 'BA', departure: 'EGLL', arrival: 'KJFK', aircraft: 'B77W', departureTime: '08:40', durationMin: 490, daysOfWeek: [0,1,2,3,4,5,6], network: 'long', aircraftFamily: 'Widebody' },
-  { id: 'ba107', flightNumber: 'BA009', airline: 'British Airways', airlineCode: 'BA', departure: 'EGLL', arrival: 'WSSS', aircraft: 'B77W', departureTime: '21:10', durationMin: 790, daysOfWeek: [0,1,2,3,4,5,6], network: 'long', aircraftFamily: 'Widebody' },
-  { id: 'ba108', flightNumber: 'BA245', airline: 'British Airways', airlineCode: 'BA', departure: 'EGLL', arrival: 'SAEZ', aircraft: 'A35K', departureTime: '22:30', durationMin: 810, daysOfWeek: [0,1,2,3,4,5,6], network: 'long', aircraftFamily: 'Widebody' },
+  { id: 'ba106', flightNumber: 'BA117', airline: 'British Airways', airlineCode: 'BA', departure: 'EGLL', arrival: 'KJFK', aircraft: 'B77W', departureTime: '08:40', durationMin: 490, daysOfWeek: [0,1,2,3,4,5,6], network: 'long', aircraftFamily: 'B777' },
+  { id: 'ba107', flightNumber: 'BA009', airline: 'British Airways', airlineCode: 'BA', departure: 'EGLL', arrival: 'WSSS', aircraft: 'B77W', departureTime: '21:10', durationMin: 790, daysOfWeek: [0,1,2,3,4,5,6], network: 'long', aircraftFamily: 'B777' },
+  { id: 'ba108', flightNumber: 'BA245', airline: 'British Airways', airlineCode: 'BA', departure: 'EGLL', arrival: 'SAEZ', aircraft: 'A35K', departureTime: '22:30', durationMin: 810, daysOfWeek: [0,1,2,3,4,5,6], network: 'long', aircraftFamily: 'A350' },
 
   // --- Lufthansa ---
   { id: 'lh101', flightNumber: 'LH100', airline: 'Lufthansa', airlineCode: 'LH', departure: 'EDDF', arrival: 'EDDM', aircraft: 'A320', departureTime: '06:30', durationMin: 65, daysOfWeek: [0,1,2,3,4,5,6], network: 'short', aircraftFamily: 'A320' },
-  { id: 'lh102', flightNumber: 'LH400', airline: 'Lufthansa', airlineCode: 'LH', departure: 'EDDF', arrival: 'KJFK', aircraft: 'B748', departureTime: '10:55', durationMin: 510, daysOfWeek: [0,1,2,3,4,5,6], network: 'long', aircraftFamily: 'Widebody' },
+  { id: 'lh102', flightNumber: 'LH400', airline: 'Lufthansa', airlineCode: 'LH', departure: 'EDDF', arrival: 'KJFK', aircraft: 'B748', departureTime: '10:55', durationMin: 510, daysOfWeek: [0,1,2,3,4,5,6], network: 'long', aircraftFamily: 'B747' },
   { id: 'lh103', flightNumber: 'LH200', airline: 'Lufthansa', airlineCode: 'LH', departure: 'EDDF', arrival: 'EDDB', aircraft: 'A320', departureTime: '15:20', durationMin: 70, daysOfWeek: [0,1,2,3,4,5,6], network: 'short', aircraftFamily: 'A320' },
 
   // --- easyJet ---
@@ -42,13 +42,13 @@ export const SCHEDULED_ROUTES: ScheduledRoute[] = [
   { id: 'fr103', flightNumber: 'FR1397', airline: 'Ryanair', airlineCode: 'FR', departure: 'EPWA', arrival: 'LEMG', aircraft: 'B38M', departureTime: '19:35', durationMin: 219, daysOfWeek: [0,1,2,3,4,5,6], network: 'short', aircraftFamily: 'B737' },
 
   // --- Emirates ---
-  { id: 'ek101', flightNumber: 'EK001', airline: 'Emirates', airlineCode: 'EK', departure: 'OMDB', arrival: 'EGLL', aircraft: 'A388', departureTime: '03:30', durationMin: 450, daysOfWeek: [0,1,2,3,4,5,6], network: 'long', aircraftFamily: 'Widebody' },
-  { id: 'ek102', flightNumber: 'EK002', airline: 'Emirates', airlineCode: 'EK', departure: 'OMDB', arrival: 'KJFK', aircraft: 'A388', departureTime: '11:00', durationMin: 780, daysOfWeek: [0,1,2,3,4,5,6], network: 'long', aircraftFamily: 'Widebody' },
+  { id: 'ek101', flightNumber: 'EK001', airline: 'Emirates', airlineCode: 'EK', departure: 'OMDB', arrival: 'EGLL', aircraft: 'A388', departureTime: '03:30', durationMin: 450, daysOfWeek: [0,1,2,3,4,5,6], network: 'long', aircraftFamily: 'A380' },
+  { id: 'ek102', flightNumber: 'EK002', airline: 'Emirates', airlineCode: 'EK', departure: 'OMDB', arrival: 'KJFK', aircraft: 'A388', departureTime: '11:00', durationMin: 780, daysOfWeek: [0,1,2,3,4,5,6], network: 'long', aircraftFamily: 'A380' },
   
   // --- Qatar Airways ---
-  { id: 'qr101', flightNumber: 'QR003', airline: 'Qatar Airways', airlineCode: 'QR', departure: 'OTHH', arrival: 'EGLL', aircraft: 'A359', departureTime: '07:45', durationMin: 420, daysOfWeek: [0,1,2,3,4,5,6], network: 'long', aircraftFamily: 'Widebody' },
+  { id: 'qr101', flightNumber: 'QR003', airline: 'Qatar Airways', airlineCode: 'QR', departure: 'OTHH', arrival: 'EGLL', aircraft: 'A359', departureTime: '07:45', durationMin: 420, daysOfWeek: [0,1,2,3,4,5,6], network: 'long', aircraftFamily: 'A350' },
 
   // --- Air France ---
   { id: 'af1101', flightNumber: 'AF1680', airline: 'Air France', airlineCode: 'AF', departure: 'LFPG', arrival: 'EGLL', aircraft: 'A320', departureTime: '12:30', durationMin: 80, daysOfWeek: [0,1,2,3,4,5,6], network: 'short', aircraftFamily: 'A320' }, 
-  { id: 'af1102', flightNumber: 'AF1268', airline: 'Air France', airlineCode: 'AF', departure: 'LFPG', arrival: 'EGCC', aircraft: 'BCS3', departureTime: '20:55', durationMin: 87, daysOfWeek: [0,1,2,3,4,5,6], network: 'short', aircraftFamily: 'A320' },
+  { id: 'af1102', flightNumber: 'AF1268', airline: 'Air France', airlineCode: 'AF', departure: 'LFPG', arrival: 'EGCC', aircraft: 'BCS3', departureTime: '20:55', durationMin: 87, daysOfWeek: [0,1,2,3,4,5,6], network: 'short', aircraftFamily: 'A220' },
 ]

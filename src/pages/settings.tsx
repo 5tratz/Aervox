@@ -21,6 +21,7 @@ import { useBackground } from '@/lib/background-context'
 import { loadJson, saveJson } from '@/lib/storage'
 import { readFile } from '@tauri-apps/plugin-fs'
 import { toast } from 'sonner'
+import { LicenseCard } from '@/components/license-card'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
   DialogDescription, DialogFooter,
@@ -238,6 +239,9 @@ export function SettingsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* ── License ── */}
+      <LicenseCard />
 
       {/* ── Danger Zone (Full Width) ── */}
       <Card className="border-destructive/30 shadow-sm bg-destructive/5 shrink-0">
