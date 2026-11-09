@@ -34,6 +34,8 @@ const DAY_SECS: i64 = 86_400;
 const CLOCK_GRACE_SECS: i64 = 3_600;
 /// Don't touch the license file on every single status call.
 const LAST_SEEN_WRITE_SECS: i64 = 300;
+/// Free days granted automatically on first launch, before a key is required.
+const AUTO_TRIAL_DAYS: i64 = 7;
 
 // ─────────────────────────────── data types ───────────────────────────────
 
@@ -108,6 +110,12 @@ struct DeviceState {
     /// machine code -> key id of the trial key already used on this machine
     #[serde(default)]
     trials: BTreeMap<String, String>,
+    /// Unix time of the first launch without a license (the automatic trial).
+    #[serde(default)]
+    auto_trial_start: Option<i64>,
+    /// Latest time seen while on the automatic trial, to catch clock rollback.
+    #[serde(default)]
+    auto_trial_last_seen: Option<i64>,
 }
 
 // ────────────────────────────── small helpers ─────────────────────────────
@@ -209,6 +217,21 @@ fn load_device_state(app: &AppHandle) -> DeviceState {
         for (machine, key_id) in state.trials {
             merged.trials.entry(machine).or_insert(key_id);
         }
+
+        // The automatic trial starts once per machine. Across mirrors keep the
+        // EARLIEST start (a later copy cannot extend it) and the LATEST
+        // last-seen time (a back-dated copy cannot hide a clock rollback).
+        match (merged.auto_trial_start, state.auto_trial_start) {
+            (Some(kept), Some(found)) => merged.auto_trial_start = Some(kept.min(found)),
+            (None, Some(found)) => merged.auto_trial_start = Some(found),
+            _ => {}
+        }
+
+        match (merged.auto_trial_last_seen, state.auto_trial_last_seen) {
+            (Some(kept), Some(found)) => merged.auto_trial_last_seen = Some(kept.max(found)),
+            (None, Some(found)) => merged.auto_trial_last_seen = Some(found),
+            _ => {}
+        }
     }
 
     merged
@@ -308,13 +331,70 @@ fn verify_token(raw: &str) -> Result<Claims, String> {
 
 // ─────────────────────────────── evaluate ─────────────────────────────────
 
+/// First launch with no license installed starts a free trial automatically.
+/// The start time is kept outside the app data folder, so wiping or
+/// reinstalling the app does not hand out a second week.
+fn auto_trial_status(app: &AppHandle, shown: &str) -> Result<LicenseStatus, String> {
+    let now = now_secs();
+    let mut device = load_device_state(app);
+
+    let start = match device.auto_trial_start {
+        Some(start) => start,
+        None => {
+            device.auto_trial_start = Some(now);
+            let _ = save_device_state(app, &device);
+            now
+        }
+    };
+
+    let last_seen = device.auto_trial_last_seen.unwrap_or(now);
+
+    if now + CLOCK_GRACE_SECS < start || now + CLOCK_GRACE_SECS < last_seen {
+        return Ok(LicenseStatus::fail(
+            shown,
+            "tampered",
+            "The system clock has moved backwards. Set the correct date and time, then restart Aervox.",
+        ));
+    }
+
+    let effective_now = now.max(last_seen);
+    let expires_at = start + AUTO_TRIAL_DAYS * DAY_SECS;
+
+    if now > last_seen + LAST_SEEN_WRITE_SECS {
+        device.auto_trial_last_seen = Some(now);
+        let _ = save_device_state(app, &device);
+    }
+
+    if effective_now >= expires_at {
+        let mut status = LicenseStatus::fail(shown, "expired", "The free trial has ended.");
+        status.tier = Some("trial".to_string());
+        status.activated_at = Some(start);
+        status.expires_at = Some(expires_at);
+        status.days_remaining = Some(0);
+        return Ok(status);
+    }
+
+    let days_remaining = ((expires_at - effective_now + DAY_SECS - 1) / DAY_SECS).max(0);
+
+    Ok(LicenseStatus {
+        state: "valid".to_string(),
+        tier: Some("trial".to_string()),
+        key_id: None,
+        activated_at: Some(start),
+        expires_at: Some(expires_at),
+        days_remaining: Some(days_remaining),
+        machine_code: shown.to_string(),
+        reason: None,
+    })
+}
+
 fn evaluate(app: &AppHandle) -> Result<LicenseStatus, String> {
     let machine = machine_code()?;
     let shown = display_code(&machine);
 
     let stored = match read_stored(app) {
         Some(stored) => stored,
-        None => return Ok(LicenseStatus::blank(&shown)),
+        None => return auto_trial_status(app, &shown),
     };
 
     let now = now_secs();

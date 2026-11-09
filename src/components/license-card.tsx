@@ -45,7 +45,7 @@ export function LicenseCard() {
   const state = status?.state ?? 'none'
   const isActive = state === 'valid'
   const daysLeft = status?.days_remaining ?? null
-  const expiringSoon = isActive && daysLeft !== null && daysLeft <= 14
+  const expiringSoon = isActive && daysLeft !== null && daysLeft <= 3
 
   const copyMachineId = async () => {
     try {
@@ -152,6 +152,7 @@ export function LicenseCard() {
               {copied ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
             </Button>
           </div>
+          <p className="text-xs text-muted-foreground">{t('license.machineHint')}</p>
         </div>
 
         {(state === 'expired' || state === 'tampered' || state === 'invalid') && (

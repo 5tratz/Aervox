@@ -29,15 +29,22 @@ export function LicenseGate() {
   const machineCode = status?.machine_code ?? '—'
   const tierName = t(tierLabelKey(status?.tier))
 
-  const heading =
-    state === 'expired'
+  // The automatic 7-day trial ends without a key, so it gets its own wording.
+  const trialEnded = state === 'expired' && status?.tier === 'trial'
+
+  const heading = trialEnded
+    ? t('license.trialEndedTitle')
+    : state === 'expired'
       ? t('license.expiredTitle')
       : state === 'tampered'
         ? t('license.tamperedTitle')
         : t('license.title')
 
-  const description =
-    state === 'expired'
+  const description = trialEnded
+    ? t('license.trialEndedBody', {
+        date: formatLicenseDate(status?.expires_at, language),
+      })
+    : state === 'expired'
       ? status?.expires_at
         ? t('license.expiredBody', {
             tier: tierName,

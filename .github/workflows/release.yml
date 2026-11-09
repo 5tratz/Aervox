@@ -26,6 +26,15 @@ jobs:
         with:
           workspaces: './src-tauri -> target'
 
+      # The bundler downloads WiX and NSIS from GitHub releases on every cold
+      # build. Those downloads occasionally return 5xx and fail the whole run,
+      # so keep the tools between builds.
+      - name: Cache Tauri bundler tools (WiX / NSIS)
+        uses: actions/cache@v4
+        with:
+          path: ~\AppData\Local\tauri
+          key: tauri-bundler-tools-${{ runner.os }}-wix314-nsis3
+
       - name: Install frontend deps
         run: npm ci
 
